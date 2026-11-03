@@ -105,9 +105,9 @@
 
           <!-- 中央：回路スイッチ＆ステップ操作 (3カラム) -->
           <div class="col-span-3 flex flex-col items-center justify-center gap-1 px-1">
-            <button id="btn-switch" onclick="toggleCircuit()" class="w-full py-2 px-2 rounded-xl font-black text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-900">
+            <button id="btn-switch" onclick="toggleCircuit()" class="w-full py-2 px-2 rounded-xl font-black text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 bg-slate-600 hover:bg-slate-500 text-white">
               <span id="switch-icon">🔌</span>
-              <span id="switch-text">導線をつなぐ (ON)</span>
+              <span id="switch-text">導線をつなぐ (OFF)</span>
             </button>
             <div class="flex w-full gap-1">
               <button id="btn-step" onclick="triggerStepExplain()" class="flex-1 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 border border-indigo-200 font-bold text-[11px] py-1 rounded-lg transition flex items-center justify-center gap-1">
@@ -229,73 +229,99 @@
         </div>
 
         <!-- 2. 負極（－極）の反応カード -->
-        <div id="card-anode" class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between transition-all">
-          <div>
-            <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-2">
-              <div class="flex items-center gap-1.5">
-                <span class="bg-blue-600 text-white font-black text-xs px-2 py-0.5 rounded">－極（負極）</span>
-                <span class="font-bold text-sm text-slate-800">亜鉛板 (Zn)</span>
-              </div>
-              <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">電子(e⁻)を放出！</span>
+        <div id="card-anode" class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between transition-all relative">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
+            <div class="flex items-center gap-1.5">
+              <span class="bg-blue-600 text-white font-black text-xs px-2 py-0.5 rounded">－極（負極）</span>
+              <span class="font-bold text-sm text-slate-800">亜鉛板 (Zn)</span>
             </div>
-            <p class="text-xs text-slate-600 leading-relaxed mb-2">
+            <button id="btn-hide-anode" onclick="toggleReactionReveal('anode', false)" class="hidden text-[11px] font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md transition">
+              🙈 隠す
+            </button>
+          </div>
+
+          <div class="relative flex-1 flex flex-col justify-between">
+            <p class="text-xs text-slate-600 leading-relaxed mb-1">
               亜鉛原子(<span class="font-bold text-slate-800">Zn</span>)が電子(<span class="font-bold text-amber-600">e⁻</span>)を2個手放して、亜鉛イオン(<span class="font-bold text-blue-600">Zn²⁺</span>)になり硫酸亜鉛水溶液中に溶け出します。
             </p>
-          </div>
 
-          <!-- 化学反応式ボックス -->
-          <div class="bg-slate-900 text-white rounded-xl p-2.5 text-center my-1 shadow-inner border border-slate-700">
-            <div class="text-[11px] text-slate-300 font-bold mb-0.5">－極で起こる反応（e⁻を使った式）</div>
-            <div class="text-xl md:text-2xl font-black tracking-wider font-mono py-0.5">
-              <span class="text-slate-100">Zn</span>
-              <span class="text-amber-400 mx-1.5">→</span>
-              <span class="text-sky-400">Zn²⁺</span>
-              <span class="text-slate-300 mx-1.5">+</span>
-              <span class="text-yellow-300">2e⁻</span>
+            <!-- 化学反応式ボックス -->
+            <div class="bg-slate-900 text-white rounded-xl p-2 text-center my-1 shadow-inner border border-slate-700">
+              <div class="text-[11px] text-slate-300 font-bold mb-0.5">－極で起こる反応（e⁻を使った式）</div>
+              <div class="text-xl md:text-2xl font-black tracking-wider font-mono py-0.5">
+                <span class="text-slate-100">Zn</span>
+                <span class="text-amber-400 mx-1.5">→</span>
+                <span class="text-sky-400">Zn²⁺</span>
+                <span class="text-slate-300 mx-1.5">+</span>
+                <span class="text-yellow-300">2e⁻</span>
+              </div>
             </div>
-          </div>
 
-          <div class="bg-blue-50/80 rounded-lg px-2.5 py-1.5 border border-blue-100 flex items-center justify-between text-[11px]">
-            <span class="font-bold text-slate-700">📌 長時間流すと：</span>
-            <span class="font-bold text-blue-900">亜鉛板がとけて<strong class="underline">うすく(ボロボロに)なる</strong></span>
+            <div class="bg-blue-50/80 rounded-lg px-2.5 py-1.5 border border-blue-100 flex items-center justify-between text-[11px]">
+              <span class="font-bold text-slate-700">📌 長時間流すと：</span>
+              <span class="font-bold text-blue-900">亜鉛板がとけて<strong class="underline">うすく(ボロボロに)なる</strong></span>
+            </div>
+
+            <!-- タップして表示カバー（初期状態：表示） -->
+            <div id="cover-anode" onclick="toggleReactionReveal('anode', true)" class="absolute inset-0 bg-gradient-to-br from-blue-50 to-slate-100 hover:from-blue-100 hover:to-slate-200 border-2 border-dashed border-blue-400 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all z-10 shadow-sm active:scale-[0.99]">
+              <div class="bg-blue-600 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow flex items-center gap-1.5 mb-1.5">
+                <span>👆</span> タップして－極の反応を表示
+              </div>
+              <p class="text-[11px] font-bold text-slate-600 text-center px-3">
+                亜鉛板ではどんな反応が起こる？<br>e⁻を使った式を予想してからタップしよう！
+              </p>
+            </div>
           </div>
         </div>
 
         <!-- 3. 正極（＋極）の反応カード -->
-        <div id="card-cathode" class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between transition-all">
-          <div>
-            <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-2">
-              <div class="flex items-center gap-1.5">
-                <span class="bg-red-600 text-white font-black text-xs px-2 py-0.5 rounded">＋極（正極）</span>
-                <span class="font-bold text-sm text-slate-800">銅板 (Cu)</span>
-              </div>
-              <span class="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">電子(e⁻)を受け取る！</span>
+        <div id="card-cathode" class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between transition-all relative">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
+            <div class="flex items-center gap-1.5">
+              <span class="bg-red-600 text-white font-black text-xs px-2 py-0.5 rounded">＋極（正極）</span>
+              <span class="font-bold text-sm text-slate-800">銅板 (Cu)</span>
             </div>
-            <p class="text-xs text-slate-600 leading-relaxed mb-2">
+            <button id="btn-hide-cathode" onclick="toggleReactionReveal('cathode', false)" class="hidden text-[11px] font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md transition">
+              🙈 隠す
+            </button>
+          </div>
+
+          <div class="relative flex-1 flex flex-col justify-between">
+            <p class="text-xs text-slate-600 leading-relaxed mb-1">
               硫酸銅水溶液中の青色の銅イオン(<span class="font-bold text-cyan-600">Cu²⁺</span>)が、導線から来た電子(<span class="font-bold text-amber-600">e⁻</span>)を受け取り、銅原子(<span class="font-bold text-orange-700">Cu</span>)になって付着します。
             </p>
-          </div>
 
-          <!-- 化学反応式ボックス -->
-          <div class="bg-slate-900 text-white rounded-xl p-2.5 text-center my-1 shadow-inner border border-slate-700">
-            <div class="text-[11px] text-slate-300 font-bold mb-0.5">＋極で起こる反応（e⁻を使った式）</div>
-            <div class="text-xl md:text-2xl font-black tracking-wider font-mono py-0.5">
-              <span class="text-cyan-400">Cu²⁺</span>
-              <span class="text-slate-300 mx-1.5">+</span>
-              <span class="text-yellow-300">2e⁻</span>
-              <span class="text-amber-400 mx-1.5">→</span>
-              <span class="text-orange-400">Cu</span>
+            <!-- 化学反応式ボックス -->
+            <div class="bg-slate-900 text-white rounded-xl p-2 text-center my-1 shadow-inner border border-slate-700">
+              <div class="text-[11px] text-slate-300 font-bold mb-0.5">＋極で起こる反応（e⁻を使った式）</div>
+              <div class="text-xl md:text-2xl font-black tracking-wider font-mono py-0.5">
+                <span class="text-cyan-400">Cu²⁺</span>
+                <span class="text-slate-300 mx-1.5">+</span>
+                <span class="text-yellow-300">2e⁻</span>
+                <span class="text-amber-400 mx-1.5">→</span>
+                <span class="text-orange-400">Cu</span>
+              </div>
             </div>
-          </div>
 
-          <div class="bg-red-50/80 rounded-lg px-2.5 py-1.5 border border-red-100 flex flex-col gap-0.5 text-[11px]">
-            <div class="flex justify-between">
-              <span class="font-bold text-slate-700">📌 電極の変化：</span>
-              <span class="font-bold text-red-900">赤茶色の<strong class="underline">銅が付着して厚くなる</strong></span>
+            <div class="bg-red-50/80 rounded-lg px-2.5 py-1.5 border border-red-100 flex flex-col gap-0.5 text-[11px]">
+              <div class="flex justify-between">
+                <span class="font-bold text-slate-700">📌 電極の変化：</span>
+                <span class="font-bold text-red-900">赤茶色の<strong class="underline">銅が付着して厚くなる</strong></span>
+              </div>
+              <div class="flex justify-between">
+                <span class="font-bold text-slate-700">📌 液の色の変化：</span>
+                <span class="font-bold text-cyan-800">Cu²⁺が減り<strong class="underline">青色がうすくなる</strong></span>
+              </div>
             </div>
-            <div class="flex justify-between">
-              <span class="font-bold text-slate-700">📌 液の色の変化：</span>
-              <span class="font-bold text-cyan-800">Cu²⁺が減り<strong class="underline">青色がうすくなる</strong></span>
+
+            <!-- タップして表示カバー（初期状態：表示） -->
+            <div id="cover-cathode" onclick="toggleReactionReveal('cathode', true)" class="absolute inset-0 bg-gradient-to-br from-red-50 to-slate-100 hover:from-red-100 hover:to-slate-200 border-2 border-dashed border-red-400 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all z-10 shadow-sm active:scale-[0.99]">
+              <div class="bg-red-600 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow flex items-center gap-1.5 mb-1.5">
+                <span>👆</span> タップして＋極の反応を表示
+              </div>
+              <p class="text-[11px] font-bold text-slate-600 text-center px-3">
+                銅板の表面ではどんな反応が起こる？<br>e⁻を使った式を予想してからタップしよう！
+              </p>
             </div>
           </div>
         </div>
@@ -521,12 +547,16 @@
       leftLiquid: 'ZnSO4',
       rightMetal: 'Cu',
       rightLiquid: 'CuSO4',
-      circuitOn: true,
+      circuitOn: false, // デフォルトは導線OFF
       simSpeed: 1.0,
       reactionProgress: 0, // 0 ~ 100 (板の消耗・銅の析出・液の薄まり具合)
       showElectronLayer: true,
       showSulfateLayer: true,
       highlightCeramicMove: true,
+
+      // 反応カードの開閉状態（デフォルトは隠す）
+      anodeRevealed: false,
+      cathodeRevealed: false,
 
       // セットアップの判定結果: 'valid_normal' (左Zn/右Cu), 'valid_reverse' (左Cu/右Zn), 'direct_reaction' (ZnをCuSO4に投入), 'same_metal', 'no_reaction'
       setupStatus: 'valid_normal',
@@ -710,16 +740,33 @@
       document.getElementById('select-left-liquid').value = 'ZnSO4';
       document.getElementById('select-right-metal').value = 'Cu';
       document.getElementById('select-right-liquid').value = 'CuSO4';
-      state.circuitOn = true;
+      state.circuitOn = false;
       updateSwitchUI();
       onSetupChange();
     }
 
     function resetSimulation() {
       state.reactionProgress = 0;
+      state.circuitOn = false;
+      updateSwitchUI();
+      toggleReactionReveal('anode', false);
+      toggleReactionReveal('cathode', false);
       closeStepExplain();
       initParticles();
       evaluateSetup();
+    }
+
+    // －極・＋極の反応カードの表示／非表示切替
+    function toggleReactionReveal(pole, show) {
+      if (pole === 'anode') {
+        state.anodeRevealed = show;
+        document.getElementById('cover-anode').classList.toggle('hidden', show);
+        document.getElementById('btn-hide-anode').classList.toggle('hidden', !show);
+      } else if (pole === 'cathode') {
+        state.cathodeRevealed = show;
+        document.getElementById('cover-cathode').classList.toggle('hidden', show);
+        document.getElementById('btn-hide-cathode').classList.toggle('hidden', !show);
+      }
     }
 
     function toggleCircuit() {
@@ -1039,16 +1086,26 @@
           spawnReactionCycle(false);
         }
         updateAndDrawActionEvents(tankX, liquidTop, tankW, liquidH, leftPlateX, rightPlateX, plateW, midX);
-        // 電極で起こる反応式を水面上部に大きく見やすく常時表示
+      }
+
+      // -------------------- 7. 電極付近のイオン反応式ラベル描画 --------------------
+      if (state.setupStatus === 'valid_normal' || state.setupStatus === 'valid_reverse') {
         drawReactionEquationsOnCanvas(leftPlateX, rightPlateX, liquidTop, midX, isReverse);
       }
     }
 
-    // キャンバス内の各電極エリアに反応式を大きく描画（漂うイオンとは重ならない水面上部エリア）
+    // キャンバス内の各電極エリアに反応式を大きく描画（カードが開かれている時のみ式を表示し、閉じている時は「？？？」にする）
     function drawReactionEquationsOnCanvas(leftPlateX, rightPlateX, liquidTop, midX, isReverse) {
-      const leftEq = isReverse ? 'Cu²⁺ + 2e⁻ → Cu' : 'Zn → Zn²⁺ + 2e⁻';
-      const rightEq = isReverse ? 'Zn → Zn²⁺ + 2e⁻' : 'Cu²⁺ + 2e⁻ → Cu';
       const leftIsAnode = !isReverse;
+      const leftRevealed = leftIsAnode ? state.anodeRevealed : state.cathodeRevealed;
+      const rightRevealed = leftIsAnode ? state.cathodeRevealed : state.anodeRevealed;
+
+      const leftEq = leftRevealed
+        ? (isReverse ? 'Cu²⁺ + 2e⁻ → Cu' : 'Zn → Zn²⁺ + 2e⁻')
+        : (isReverse ? '＋極の反応：？？？' : '－極の反応：？？？');
+      const rightEq = rightRevealed
+        ? (isReverse ? 'Zn → Zn²⁺ + 2e⁻' : 'Cu²⁺ + 2e⁻ → Cu')
+        : (isReverse ? '－極の反応：？？？' : '＋極の反応：？？？');
 
       const leftCenterX = (leftPlateX + 20 + midX - 10) / 2;
       const rightCenterX = (midX + 10 + rightPlateX - 20) / 2;
@@ -1764,6 +1821,7 @@
 
     window.onload = function () {
       resizeCanvas();
+      updateSwitchUI();
       initParticles();
       evaluateSetup();
       animateLoop();
