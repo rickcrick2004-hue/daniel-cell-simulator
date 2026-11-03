@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>中3理科：ダニエル電池シミュレーター</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans JP', 'Inter', sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    /* iPad横画面でスクロールバーを出さないための調整 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    @keyframes pulse-border {
+      0%, 100% { border-color: rgba(59, 130, 246, 0.9); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+      50% { border-color: rgba(59, 130, 246, 0.3); box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+    }
+    .highlight-pulse {
+      animation: pulse-border 1.8s infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen w-screen overflow-hidden flex flex-col">
+
+  <!-- ==================== ヘッダー (高さ固定 52px) ==================== -->
+  <header class="h-[52px] bg-slate-900 text-white px-4 flex items-center justify-between shrink-0 shadow-md z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center font-black text-slate-900 text-lg shadow">
+        ⚡
+      </div>
+      <div>
+        <h1 class="font-bold text-base md:text-lg leading-tight tracking-wide flex items-center gap-2">
+          ダニエル電池のしくみ
+          <span class="text-xs bg-slate-700 text-slate-200 px-2 py-0.5 rounded-full font-normal">中3理科 化学変化と電池</span>
+        </h1>
+      </div>
+    </div>
+
+    <!-- モード切替タブ -->
+    <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+      <button id="tab-sim" onclick="switchMode('sim')" class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 bg-blue-600 text-white shadow">
+        <span>🔬</span> 理解モード（実験・観察）
+      </button>
+      <button id="tab-quiz" onclick="switchMode('quiz')" class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white">
+        <span>📝</span> 小テストモード <span id="quiz-badge" class="bg-amber-500 text-slate-900 text-xs px-1.5 py-0.2 rounded-full font-extrabold ml-1">7問</span>
+      </button>
+    </div>
+
+    <!-- 右側ユーティリティ -->
+    <div class="flex items-center gap-2">
+      <button onclick="setCorrectSetup()" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow flex items-center gap-1">
+        <span>✨</span> 正しいセッティングにする
+      </button>
+      <button onclick="resetSimulation()" class="bg-slate-700 hover:bg-slate-600 active:scale-95 text-slate-200 text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+        <span>🔄</span> リセット
+      </button>
+    </div>
+  </header>
+
+  <!-- ==================== メインコンテンツ (残り全画面) ==================== -->
+  <main class="flex-1 overflow-hidden relative">
+
+    <!-- ==================== 1. 理解モード画面 ==================== -->
+    <section id="view-sim" class="h-full w-full grid grid-cols-12 gap-2.5 p-2.5">
+
+      <!-- 左・中央エリア：シミュレーション操作＆キャンバス (8カラム) -->
+      <div class="col-span-8 flex flex-col gap-2 h-full overflow-hidden">
+
+        <!-- 上部：実験装置セットアップ＆操作バー -->
+        <div class="bg-white rounded-xl p-2 shadow-sm border border-slate-200 grid grid-cols-11 gap-2 items-center shrink-0">
+          
+          <!-- 左側の槽の設定 (4カラム) -->
+          <div class="col-span-4 bg-slate-50 rounded-lg p-1.5 border border-slate-200 flex flex-col gap-1">
+            <div class="flex items-center justify-between px-1">
+              <span class="text-[11px] font-bold text-slate-500">◀ 左側のセット</span>
+              <span id="left-pole-badge" class="text-xs font-black px-2 py-0.5 rounded bg-slate-200 text-slate-600">極：？</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1">
+              <div>
+                <label class="block text-[10px] text-slate-500 font-bold mb-0.5">金属板</label>
+                <select id="select-left-metal" onchange="onSetupChange()" class="w-full text-xs font-bold bg-white border border-slate-300 rounded-md px-1.5 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="Zn" selected>亜鉛板 (Zn)</option>
+                  <option value="Cu">銅板 (Cu)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-500 font-bold mb-0.5">水溶液</label>
+                <select id="select-left-liquid" onchange="onSetupChange()" class="w-full text-xs font-bold bg-white border border-slate-300 rounded-md px-1.5 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="ZnSO4" selected>硫酸亜鉛水溶液</option>
+                  <option value="CuSO4">硫酸銅水溶液</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 中央：回路スイッチ＆ステップ操作 (3カラム) -->
+          <div class="col-span-3 flex flex-col items-center justify-center gap-1 px-1">
+            <button id="btn-switch" onclick="toggleCircuit()" class="w-full py-2 px-2 rounded-xl font-black text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-900">
+              <span id="switch-icon">🔌</span>
+              <span id="switch-text">導線をつなぐ (ON)</span>
+            </button>
+            <div class="flex w-full gap-1">
+              <button id="btn-step" onclick="triggerStepExplain()" class="flex-1 bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 border border-indigo-200 font-bold text-[11px] py-1 rounded-lg transition flex items-center justify-center gap-1">
+                <span>🔍</span> 1段階ずつ解説
+              </button>
+            </div>
+          </div>
+
+          <!-- 右側の槽の設定 (4カラム) -->
+          <div class="col-span-4 bg-slate-50 rounded-lg p-1.5 border border-slate-200 flex flex-col gap-1">
+            <div class="flex items-center justify-between px-1">
+              <span id="right-pole-badge" class="text-xs font-black px-2 py-0.5 rounded bg-slate-200 text-slate-600">極：？</span>
+              <span class="text-[11px] font-bold text-slate-500">右側のセット ▶</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1">
+              <div>
+                <label class="block text-[10px] text-slate-500 font-bold mb-0.5">金属板</label>
+                <select id="select-right-metal" onchange="onSetupChange()" class="w-full text-xs font-bold bg-white border border-slate-300 rounded-md px-1.5 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="Zn">亜鉛板 (Zn)</option>
+                  <option value="Cu" selected>銅板 (Cu)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-500 font-bold mb-0.5">水溶液</label>
+                <select id="select-right-liquid" onchange="onSetupChange()" class="w-full text-xs font-bold bg-white border border-slate-300 rounded-md px-1.5 py-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="ZnSO4">硫酸亜鉛水溶液</option>
+                  <option value="CuSO4" selected>硫酸銅水溶液</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 中央：メインアニメーション Canvas -->
+        <div id="canvas-container" class="flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 relative overflow-hidden flex items-center justify-center">
+          <canvas id="simCanvas" class="w-full h-full block"></canvas>
+
+          <!-- ステップ解説オーバーレイ（ステップモード時のみ表示） -->
+          <div id="step-overlay" class="hidden absolute top-3 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-4 py-2.5 rounded-2xl shadow-xl border border-indigo-400 max-w-lg w-11/12 z-10 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+              <span id="step-badge" class="bg-indigo-500 text-white text-xs font-black px-2.5 py-1 rounded-lg shrink-0">STEP 1/4</span>
+              <p id="step-desc" class="text-xs md:text-sm font-bold leading-snug text-slate-100">
+                亜鉛原子(Zn)が電子(e⁻)を2個置いて、亜鉛イオン(Zn²⁺)になり水溶液中に溶け出します。
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="nextStepExplain()" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-black text-xs px-3 py-1.5 rounded-lg shadow active:scale-95">
+                次へ ▶
+              </button>
+              <button onclick="closeStepExplain()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold text-xs px-2 py-1.5 rounded-lg">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- 経過時間・水溶液の濃さインジケーター（キャンバス左上） -->
+          <div class="absolute top-2.5 left-3 bg-white/90 backdrop-blur px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3 pointer-events-none">
+            <div class="text-[11px] font-bold text-slate-600 flex items-center gap-1">
+              <span>⏱️ 反応進行度:</span>
+              <div class="w-20 h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                <div id="progress-bar" class="h-full bg-blue-500 w-0 transition-all duration-300"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- イオン化傾向ミニヒント（キャンバス右上） -->
+          <div class="absolute top-2.5 right-3 bg-amber-50/95 backdrop-blur px-2.5 py-1 rounded-xl border border-amber-200 shadow-sm pointer-events-none">
+            <div class="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+              <span>💡 イオンへのなりやすさ:</span>
+              <span class="bg-white px-1.5 py-0.5 rounded border border-amber-300 font-black text-blue-700">亜鉛(Zn)</span>
+              <span class="font-black text-red-600">＞</span>
+              <span class="bg-white px-1.5 py-0.5 rounded border border-amber-300 font-black text-amber-800">銅(Cu)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 下部：表示切り替え＆凡例バー -->
+        <div class="bg-white rounded-xl px-3 py-2 shadow-sm border border-slate-200 flex items-center justify-between gap-2 shrink-0">
+          <!-- トグルボタン群 -->
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-xs font-bold text-slate-500 mr-1">表示切替:</span>
+            <button id="toggle-electron" onclick="toggleLayer('electron')" class="px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1 bg-blue-50 border-blue-400 text-blue-800">
+              <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-amber-600 inline-block"></span> 電子(e⁻)と電流の向き
+            </button>
+            <button id="toggle-sulfate" onclick="toggleLayer('sulfate')" class="px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1 bg-purple-50 border-purple-400 text-purple-800">
+              <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span> 硫酸イオン(SO₄²⁻)も表示
+            </button>
+            <button id="toggle- ceramic" onclick="toggleLayer('ceramicMove')" class="px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1 bg-emerald-50 border-emerald-400 text-emerald-800">
+              <span>🔄</span> 素焼き板のイオン移動強調
+            </button>
+          </div>
+
+          <!-- スピード切替 -->
+          <div class="flex items-center gap-1 shrink-0">
+            <span class="text-[11px] font-bold text-slate-500">速度:</span>
+            <button onclick="setSimSpeed(0.5)" id="speed-slow" class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">ゆっくり</button>
+            <button onclick="setSimSpeed(1)" id="speed-normal" class="px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">標準</button>
+            <button onclick="setSimSpeed(2.2)" id="speed-fast" class="px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600">はやい</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 右エリア：ミクロ解説・反応式パネル (4カラム) -->
+      <div class="col-span-4 flex flex-col gap-2 h-full overflow-y-auto no-scrollbar">
+
+        <!-- 1. 実験ステータス＆診断ボックス -->
+        <div id="status-card" class="bg-white rounded-xl p-3 shadow-sm border-2 border-blue-400 shrink-0 transition-all">
+          <div class="flex items-center justify-between mb-1">
+            <span id="status-title" class="text-xs font-black px-2 py-0.5 rounded-md bg-blue-100 text-blue-800">
+              ⚡ 正しいダニエル電池のセットです
+            </span>
+            <span id="status-sub" class="text-[11px] font-bold text-slate-500">電球：点灯可能</span>
+          </div>
+          <p id="status-message" class="text-xs text-slate-700 leading-relaxed font-medium">
+            亜鉛(Zn)の方が銅(Cu)より<strong>イオンになりやすい</strong>ため、亜鉛板から電子(e⁻)が飛び出し、導線を通って銅板へ流れます。
+          </p>
+        </div>
+
+        <!-- 2. 負極（－極）の反応カード -->
+        <div id="card-anode" class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between transition-all">
+          <div>
+            <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-2">
+              <div class="flex items-center gap-1.5">
+                <span class="bg-blue-600 text-white font-black text-xs px-2 py-0.5 rounded">－極（負極）</span>
+                <span class="font-bold text-sm text-slate-800">亜鉛板 (Zn)</span>
+              </div>
+              <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">電子(e⁻)を放出！</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed mb-2">
+              亜鉛原子(<span class="font-bold text-slate-800">Zn</span>)が電子(<span class="font-bold text-amber-600">e⁻</span>)を2個手放して、亜鉛イオン(<span class="font-bold text-blue-600">Zn²⁺</span>)になり硫酸亜鉛水溶液中に溶け出します。
+            </p>
+          </div>
+
+          <!-- 化学反応式ボックス -->
+          <div class="bg-slate-900 text-white rounded-xl p-2.5 text-center my-1 shadow-inner border border-slate-700">
+            <div class="text-[11px] text-slate-300 font-bold mb-0.5">－極で起こる反応（e⁻を使った式）</div>
+            <div class="text-xl md:text-2xl font-black tracking-wider font-mono py-0.5">
+              <span class="text-slate-100">Zn</span>
+              <span class="text-amber-400 mx-1.5">→</span>
+              <span class="text-sky-400">Zn²⁺</span>
+              <span class="text-slate-300 mx-1.5">+</span>
+              <span class="text-yellow-300">2e⁻</span>
+            </div>
+          </div>
+
+          <div class="bg-blue-50/80 rounded-lg px-2.5 py-1.5 border border-blue-100 flex items-center justify-between text-[11px]">
+            <span class="font-bold text-slate-700">📌 長時間流すと：</span>
+            <span class="font-bold text-blue-900">亜鉛板がとけて<strong class="underline">うすく(ボロボロに)なる</strong></span>
+          </div>
+        </div>
+
+        <!-- 3. 正極（＋極）の反応カード -->
+        <div id="card-cathode" class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between transition-all">
+          <div>
+            <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-2">
+              <div class="flex items-center gap-1.5">
+                <span class="bg-red-600 text-white font-black text-xs px-2 py-0.5 rounded">＋極（正極）</span>
+                <span class="font-bold text-sm text-slate-800">銅板 (Cu)</span>
+              </div>
+              <span class="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">電子(e⁻)を受け取る！</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed mb-2">
+              硫酸銅水溶液中の青色の銅イオン(<span class="font-bold text-cyan-600">Cu²⁺</span>)が、導線から来た電子(<span class="font-bold text-amber-600">e⁻</span>)を受け取り、銅原子(<span class="font-bold text-orange-700">Cu</span>)になって付着します。
+            </p>
+          </div>
+
+          <!-- 化学反応式ボックス -->
+          <div class="bg-slate-900 text-white rounded-xl p-2.5 text-center my-1 shadow-inner border border-slate-700">
+            <div class="text-[11px] text-slate-300 font-bold mb-0.5">＋極で起こる反応（e⁻を使った式）</div>
+            <div class="text-xl md:text-2xl font-black tracking-wider font-mono py-0.5">
+              <span class="text-cyan-400">Cu²⁺</span>
+              <span class="text-slate-300 mx-1.5">+</span>
+              <span class="text-yellow-300">2e⁻</span>
+              <span class="text-amber-400 mx-1.5">→</span>
+              <span class="text-orange-400">Cu</span>
+            </div>
+          </div>
+
+          <div class="bg-red-50/80 rounded-lg px-2.5 py-1.5 border border-red-100 flex flex-col gap-0.5 text-[11px]">
+            <div class="flex justify-between">
+              <span class="font-bold text-slate-700">📌 電極の変化：</span>
+              <span class="font-bold text-red-900">赤茶色の<strong class="underline">銅が付着して厚くなる</strong></span>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-bold text-slate-700">📌 液の色の変化：</span>
+              <span class="font-bold text-cyan-800">Cu²⁺が減り<strong class="underline">青色がうすくなる</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 水溶液の電離と素焼き板の役割カード -->
+        <div id="card-ions" class="bg-white rounded-xl p-2.5 shadow-sm border border-slate-200 shrink-0 transition-all">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-bold text-xs text-slate-800 flex items-center gap-1">
+              <span>🧱</span> 電離のようすと素焼き板の役割
+            </span>
+            <button onclick="openIonModal()" class="text-[11px] bg-slate-100 hover:bg-slate-200 text-blue-700 font-bold px-2 py-0.5 rounded transition">
+              電離の式を詳しく見る ▸
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-600 leading-snug">
+            反応が進むと、－極側の液は<strong class="text-blue-700">Zn²⁺が増えて(＋)にかたより</strong>、＋極側の液はCu²⁺が減って<strong class="text-purple-700">SO₄²⁻が余り(－)にかたより</strong>ます。<br>
+            素焼き板の小さな穴をイオンが移動（<span class="font-bold text-blue-700">Zn²⁺は＋極側へ</span>、<span class="font-bold text-purple-700">SO₄²⁻は－極側へ</span>）して電気的なかたよりをなくします。
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== 2. 小テストモード画面 ==================== -->
+    <section id="view-quiz" class="hidden h-full w-full grid grid-cols-12 gap-3 p-3 bg-slate-100">
+      
+      <!-- 左側：参照用ミニ図解＆スコアボード (5カラム) -->
+      <div class="col-span-5 flex flex-col gap-3 h-full">
+        
+        <!-- スコア・進捗カード -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 shrink-0">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="font-black text-base text-slate-800 flex items-center gap-2">
+              <span>🏆</span> ダニエル電池 マスター小テスト
+            </h2>
+            <span id="quiz-score-badge" class="bg-blue-600 text-white font-black text-xs px-3 py-1 rounded-full">
+              正解数: 0 / 7
+            </span>
+          </div>
+          <!-- 問題番号インジケーター -->
+          <div id="quiz-dots" class="grid grid-cols-7 gap-1.5 mt-2">
+            <!-- JSで生成 -->
+          </div>
+        </div>
+
+        <!-- テスト用ヒント図解（問題に合わせて注目箇所が変化） -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between relative overflow-hidden">
+          <div class="text-xs font-bold text-slate-500 flex items-center justify-between">
+            <span>📊 問題の確認用モデル図</span>
+            <span class="text-[11px] text-slate-400">左：亜鉛板＋硫酸亜鉛 / 右：銅板＋硫酸銅</span>
+          </div>
+
+          <!-- SVG模式図 -->
+          <div class="flex-1 flex items-center justify-center my-1">
+            <svg viewBox="0 0 420 270" class="w-full h-full max-h-[260px]">
+              <!-- 導線と豆電球 -->
+              <path d="M 105 90 L 105 35 L 315 35 L 315 90" fill="none" stroke="#334155" stroke-width="4"/>
+              <circle cx="210" cy="35" r="18" fill="#fef08a" stroke="#ca8a04" stroke-width="3"/>
+              <text x="210" y="40" text-anchor="middle" font-size="12" font-weight="bold" fill="#854d0e">電球</text>
+
+              <!-- 矢印 (A) 左→右 / 矢印 (B) 右→左 -->
+              <g id="svg-arrows">
+                <path d="M 130 18 L 175 18" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow-blue)"/>
+                <text x="152" y="13" text-anchor="middle" font-size="11" font-weight="bold" fill="#2563eb">向き(ア)</text>
+                <path d="M 290 18 L 245 18" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow-red)"/>
+                <text x="267" y="13" text-anchor="middle" font-size="11" font-weight="bold" fill="#dc2626">向き(イ)</text>
+              </g>
+
+              <defs>
+                <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+                </marker>
+                <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+                </marker>
+              </defs>
+
+              <!-- 水槽の背景（左：無色、右：青色） -->
+              <rect x="45" y="115" width="165" height="130" fill="#f1f5f9" />
+              <rect x="210" y="115" width="165" height="130" fill="#bae6fd" />
+              <!-- 水槽の枠 -->
+              <path d="M 45 95 L 45 245 L 375 245 L 375 95" fill="none" stroke="#475569" stroke-width="4" stroke-linejoin="round"/>
+
+              <!-- 素焼き板 -->
+              <rect x="204" y="100" width="12" height="143" fill="#e2e8f0" stroke="#64748b" stroke-width="2" stroke-dasharray="4 2"/>
+              <text x="210" y="262" text-anchor="middle" font-size="11" font-weight="bold" fill="#475569">素焼き板</text>
+
+              <!-- 亜鉛板 (左) -->
+              <rect x="85" y="80" width="40" height="140" rx="4" fill="#94a3b8" stroke="#475569" stroke-width="2.5"/>
+              <text x="105" y="150" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">亜鉛板</text>
+              <text x="105" y="168" text-anchor="middle" font-size="12" font-weight="bold" fill="#f8fafc">(Zn)</text>
+
+              <!-- 銅板 (右) -->
+              <rect x="295" y="80" width="40" height="140" rx="4" fill="#c2410c" stroke="#7c2d12" stroke-width="2.5"/>
+              <text x="315" y="150" text-anchor="middle" font-size="13" font-weight="bold" fill="#ffffff">銅板</text>
+              <text x="315" y="168" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffedd5">(Cu)</text>
+
+              <!-- 水溶液ラベル -->
+              <text x="125" y="235" text-anchor="middle" font-size="11" font-weight="bold" fill="#334155">硫酸亜鉛水溶液</text>
+              <text x="295" y="235" text-anchor="middle" font-size="11" font-weight="bold" fill="#0369a1">硫酸銅水溶液(青)</text>
+            </svg>
+          </div>
+
+          <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+            <span>迷ったら理解モードに戻って動きを確かめよう！</span>
+            <button onclick="switchMode('sim')" class="bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 font-bold px-2.5 py-1 rounded-lg shadow-sm transition shrink-0">
+              🔬 実験画面を見る
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右側：問題出題＆選択肢＆解説エリア (7カラム) -->
+      <div class="col-span-7 flex flex-col gap-3 h-full">
+        
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between overflow-hidden">
+          
+          <!-- 問題ヘッダー＆問題文 -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span id="q-number" class="bg-indigo-100 text-indigo-800 font-black text-xs px-3 py-1 rounded-lg">
+                第 1 問 / 全7問
+              </span>
+              <span id="q-category" class="text-xs font-bold text-slate-500">
+                テーマ：電極（＋極・－極）の決定
+              </span>
+            </div>
+            <h3 id="q-text" class="text-base md:text-lg font-bold text-slate-900 leading-snug mb-4">
+              問題文がここに入ります
+            </h3>
+
+            <!-- 4択ボタンリスト -->
+            <div id="q-options" class="grid grid-cols-1 gap-2.5">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+
+          <!-- 解説＆次へボタンボックス（回答後に表示） -->
+          <div id="q-feedback" class="hidden mt-3 rounded-xl p-3.5 border-2 transition-all">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1">
+                <div id="q-result-title" class="font-black text-sm mb-1 flex items-center gap-1.5">
+                  ⭕ 大正解！
+                </div>
+                <p id="q-explanation" class="text-xs text-slate-700 leading-relaxed font-medium">
+                  解説文がここに入ります。
+                </p>
+              </div>
+              <div class="flex flex-col gap-1.5 shrink-0">
+                <button id="btn-next-q" onclick="nextQuestion()" class="bg-slate-900 hover:bg-slate-800 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow transition active:scale-95">
+                  次の問題へ ▶
+                </button>
+                <button id="btn-check-sim" onclick="jumpToSimFromQuiz()" class="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-[11px] px-3 py-1.5 rounded-lg transition">
+                  🔬 シミュで確認
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== 電離とイオンの詳細モーダル ==================== -->
+  <div id="ion-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+        <h3 class="font-black text-lg text-slate-800 flex items-center gap-2">
+          <span>💧</span> ダニエル電池で使われる水溶液の「電離」
+        </h3>
+        <button onclick="closeIonModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center font-bold text-slate-600">✕</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <!-- 硫酸亜鉛水溶液 -->
+        <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200">
+          <div class="font-bold text-sm text-slate-800 mb-1 flex items-center justify-between">
+            <span>① 硫酸亜鉛水溶液 (無色透明)</span>
+            <span class="text-xs bg-slate-200 px-2 py-0.5 rounded font-mono">ZnSO₄</span>
+          </div>
+          <p class="text-xs text-slate-600 mb-2">水に溶けると、陽イオンの<strong>亜鉛イオン</strong>と陰イオンの<strong>硫酸イオン</strong>に電離しています。</p>
+          <div class="bg-slate-900 text-white rounded-lg p-2 text-center font-mono font-bold text-sm">
+            ZnSO₄ → <span class="text-sky-400">Zn²⁺</span> + <span class="text-purple-400">SO₄²⁻</span>
+          </div>
+        </div>
+
+        <!-- 硫酸銅水溶液 -->
+        <div class="bg-sky-50 rounded-xl p-3.5 border border-sky-200">
+          <div class="font-bold text-sm text-sky-900 mb-1 flex items-center justify-between">
+            <span>② 硫酸銅水溶液 (青色)</span>
+            <span class="text-xs bg-sky-200 text-sky-900 px-2 py-0.5 rounded font-mono">CuSO₄</span>
+          </div>
+          <p class="text-xs text-slate-600 mb-2">水に溶けると、青色の<strong>銅イオン</strong>と<strong>硫酸イオン</strong>に電離しています。</p>
+          <div class="bg-slate-900 text-white rounded-lg p-2 text-center font-mono font-bold text-sm">
+            CuSO₄ → <span class="text-cyan-400">Cu²⁺</span> + <span class="text-purple-400">SO₄²⁻</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-amber-50 rounded-xl p-3.5 border border-amber-200 text-xs text-slate-700 leading-relaxed mb-4">
+        <div class="font-black text-amber-900 mb-1">💡 なぜ素焼き板（またはセロハン）で仕切るの？</div>
+        もし素焼き板を使わずに、硫酸銅水溶液に亜鉛板を直接入れると、液中の <strong class="text-cyan-700">Cu²⁺</strong> が亜鉛板の表面に直接ぶつかって電子を受け取ってしまい、<strong>導線に電子（電流）を取り出すことができません</strong>。<br>
+        また、電池として電流を流し続けると左右の液でプラス・マイナスの電気のかたよりが生じるため、イオンが通り抜けられる<strong>素焼き板</strong>が必要になります。
+      </div>
+
+      <div class="text-right">
+        <button onclick="closeIonModal()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-2 rounded-xl shadow">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== JavaScript ==================== -->
+  <script>
+    // ==================== アプリ状態管理 ====================
+    const state = {
+      mode: 'sim', // 'sim' | 'quiz'
+      leftMetal: 'Zn',
+      leftLiquid: 'ZnSO4',
+      rightMetal: 'Cu',
+      rightLiquid: 'CuSO4',
+      circuitOn: true,
+      simSpeed: 1.0,
+      reactionProgress: 0, // 0 ~ 100 (板の消耗・銅の析出・液の薄まり具合)
+      showElectronLayer: true,
+      showSulfateLayer: true,
+      highlightCeramicMove: true,
+
+      // セットアップの判定結果: 'valid_normal' (左Zn/右Cu), 'valid_reverse' (左Cu/右Zn), 'direct_reaction' (ZnをCuSO4に投入), 'same_metal', 'no_reaction'
+      setupStatus: 'valid_normal',
+
+      // ステップ解説モード
+      stepMode: false,
+      currentStep: 1, // 1~4
+
+      // アニメーション用パーティクル
+      wireElectrons: [],
+      floatingIons: [],
+      actionEvents: [], // 溶け出し・析出・素焼き板通過の強調アニメーション粒子
+      spawnTimer: 0
+    };
+
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // ==================== 初期化＆リサイズ処理 ====================
+    function resizeCanvas() {
+      const container = document.getElementById('canvas-container');
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.logicalWidth = rect.width;
+      canvas.logicalHeight = rect.height;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    function initParticles() {
+      state.wireElectrons = [];
+      for (let i = 0; i < 10; i++) {
+        state.wireElectrons.push({ t: i / 10 });
+      }
+
+      state.floatingIons = [];
+      // 左槽の初期イオン
+      populateTankIons('left', state.leftLiquid);
+      // 右槽の初期イオン
+      populateTankIons('right', state.rightLiquid);
+      state.actionEvents = [];
+    }
+
+    function populateTankIons(side, liquidType) {
+      // 指定された側の既存イオンをクリア
+      state.floatingIons = state.floatingIons.filter(ion => ion.side !== side);
+      const cationType = liquidType === 'ZnSO4' ? 'Zn2+' : 'Cu2+';
+      // 数を減らして見やすく配置（陽イオン4個、硫酸イオン3個）
+      // rx, ry は電極や上部の反応式ラベルを避けた安全領域(0.0~1.0)内の相対座標として使用
+      for (let i = 0; i < 4; i++) {
+        state.floatingIons.push({
+          side: side,
+          type: cationType,
+          rx: 0.15 + (i / 4) * 0.7 + (Math.random() - 0.5) * 0.1,
+          ry: 0.2 + (i % 2) * 0.5 + (Math.random() - 0.5) * 0.15,
+          vx: (Math.random() < 0.5 ? 1 : -1) * (0.0018 + Math.random() * 0.001),
+          vy: (Math.random() < 0.5 ? 1 : -1) * (0.0018 + Math.random() * 0.001)
+        });
+      }
+      for (let i = 0; i < 3; i++) {
+        state.floatingIons.push({
+          side: side,
+          type: 'SO42-',
+          rx: 0.2 + (i / 3) * 0.6 + (Math.random() - 0.5) * 0.1,
+          ry: 0.35 + ((i + 1) % 2) * 0.4 + (Math.random() - 0.5) * 0.15,
+          vx: (Math.random() < 0.5 ? 1 : -1) * (0.0015 + Math.random() * 0.001),
+          vy: (Math.random() < 0.5 ? 1 : -1) * (0.0015 + Math.random() * 0.001)
+        });
+      }
+    }
+
+    // ==================== セットアップ診断ロジック ====================
+    function evaluateSetup() {
+      const lm = state.leftMetal;
+      const ll = state.leftLiquid;
+      const rm = state.rightMetal;
+      const rl = state.rightLiquid;
+
+      const leftBadge = document.getElementById('left-pole-badge');
+      const rightBadge = document.getElementById('right-pole-badge');
+      const statusCard = document.getElementById('status-card');
+      const statusTitle = document.getElementById('status-title');
+      const statusSub = document.getElementById('status-sub');
+      const statusMsg = document.getElementById('status-message');
+
+      // 1. 亜鉛板を硫酸銅水溶液に直接入れた場合（直接反応エラー）
+      if ((lm === 'Zn' && ll === 'CuSO4') || (rm === 'Zn' && rl === 'CuSO4')) {
+        state.setupStatus = 'direct_reaction';
+        leftBadge.textContent = '極：×';
+        leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-amber-100 text-amber-800';
+        rightBadge.textContent = '極：×';
+        rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-amber-100 text-amber-800';
+
+        statusCard.className = 'bg-amber-50 rounded-xl p-3 shadow-sm border-2 border-amber-400 shrink-0';
+        statusTitle.textContent = '⚠️ 亜鉛板の表面で直接反応してしまいます！';
+        statusTitle.className = 'text-xs font-black px-2 py-0.5 rounded-md bg-amber-200 text-amber-900';
+        statusSub.textContent = '電球：つかない';
+        statusMsg.innerHTML = '硫酸銅水溶液に亜鉛板を入れると、液中の<strong>Cu²⁺が亜鉛板に直接ふれてその場で電子(e⁻)を受け取る</strong>ため、導線に電子が流れません！亜鉛板は<strong>硫酸亜鉛水溶液</strong>に入れましょう。';
+        return;
+      }
+
+      // 2. 両方同じ金属の場合
+      if (lm === rm) {
+        state.setupStatus = 'same_metal';
+        leftBadge.textContent = '電位差なし';
+        leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-slate-200 text-slate-600';
+        rightBadge.textContent = '電位差なし';
+        rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-slate-200 text-slate-600';
+
+        statusCard.className = 'bg-rose-50 rounded-xl p-3 shadow-sm border-2 border-rose-300 shrink-0';
+        statusTitle.textContent = '❌ 左右が同じ金属板になっています';
+        statusTitle.className = 'text-xs font-black px-2 py-0.5 rounded-md bg-rose-200 text-rose-900';
+        statusSub.textContent = '電球：つかない';
+        statusMsg.innerHTML = '電池をつくるには、<strong>イオンへのなりやすさが異なる2種類の金属（亜鉛板と銅板）</strong>を使う必要があります。';
+        return;
+      }
+
+      // 3. 正しいダニエル電池（左：Zn+ZnSO4、右：Cu+CuSO4）
+      if (lm === 'Zn' && ll === 'ZnSO4' && rm === 'Cu' && rl === 'CuSO4') {
+        state.setupStatus = 'valid_normal';
+        leftBadge.textContent = '－極 (負極)';
+        leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-blue-600 text-white shadow-sm';
+        rightBadge.textContent = '＋極 (正極)';
+        rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-red-600 text-white shadow-sm';
+
+        statusCard.className = 'bg-white rounded-xl p-3 shadow-sm border-2 border-blue-400 shrink-0';
+        statusTitle.textContent = '⚡ 正しいダニエル電池のセットです';
+        statusTitle.className = 'text-xs font-black px-2 py-0.5 rounded-md bg-blue-100 text-blue-800';
+        statusSub.textContent = state.circuitOn ? '電球：点灯中 💡' : 'スイッチ：OFF';
+        statusMsg.innerHTML = '左の<strong>亜鉛板(－極)</strong>から<strong>電子(e⁻)</strong>が導線へ流れ出し、右の<strong>銅板(＋極)</strong>へ移動します。※電流の向きは電子の逆（＋極→－極）です。';
+        return;
+      }
+
+      // 4. 左右逆の正しいダニエル電池（左：Cu+CuSO4、右：Zn+ZnSO4）
+      if (lm === 'Cu' && ll === 'CuSO4' && rm === 'Zn' && rl === 'ZnSO4') {
+        state.setupStatus = 'valid_reverse';
+        leftBadge.textContent = '＋極 (正極)';
+        leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-red-600 text-white shadow-sm';
+        rightBadge.textContent = '－極 (負極)';
+        rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-blue-600 text-white shadow-sm';
+
+        statusCard.className = 'bg-white rounded-xl p-3 shadow-sm border-2 border-emerald-500 shrink-0';
+        statusTitle.textContent = '⚡ 左右逆でも正しく発電します！';
+        statusTitle.className = 'text-xs font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800';
+        statusSub.textContent = state.circuitOn ? '電球：点灯中 💡' : 'スイッチ：OFF';
+        statusMsg.innerHTML = '右の<strong>亜鉛板が－極</strong>、左の<strong>銅板が＋極</strong>になります。電子(e⁻)は右(亜鉛)から左(銅)へ流れます！';
+        return;
+      }
+
+      // 5. 銅板側が硫酸亜鉛水溶液になっていて電子を受け取るCu2+がない場合
+      state.setupStatus = 'no_reaction';
+      leftBadge.textContent = '極：？';
+      leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-slate-200 text-slate-600';
+      rightBadge.textContent = '極：？';
+      rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-slate-200 text-slate-600';
+
+      statusCard.className = 'bg-amber-50 rounded-xl p-3 shadow-sm border-2 border-amber-400 shrink-0';
+      statusTitle.textContent = '⚠️ 水溶液の組み合わせを確認しよう';
+      statusTitle.className = 'text-xs font-black px-2 py-0.5 rounded-md bg-amber-200 text-amber-900';
+      statusSub.textContent = '電球：つかない';
+      statusMsg.innerHTML = '銅板の周りに電子(e⁻)を受け取る<strong>銅イオン(Cu²⁺)</strong>がないため、うまく反応が進みません。銅板は<strong>硫酸銅水溶液</strong>に入れましょう。';
+    }
+
+    function onSetupChange() {
+      state.leftMetal = document.getElementById('select-left-metal').value;
+      state.leftLiquid = document.getElementById('select-left-liquid').value;
+      state.rightMetal = document.getElementById('select-right-metal').value;
+      state.rightLiquid = document.getElementById('select-right-liquid').value;
+      state.reactionProgress = 0;
+      closeStepExplain();
+      initParticles();
+      evaluateSetup();
+    }
+
+    function setCorrectSetup() {
+      document.getElementById('select-left-metal').value = 'Zn';
+      document.getElementById('select-left-liquid').value = 'ZnSO4';
+      document.getElementById('select-right-metal').value = 'Cu';
+      document.getElementById('select-right-liquid').value = 'CuSO4';
+      state.circuitOn = true;
+      updateSwitchUI();
+      onSetupChange();
+    }
+
+    function resetSimulation() {
+      state.reactionProgress = 0;
+      closeStepExplain();
+      initParticles();
+      evaluateSetup();
+    }
+
+    function toggleCircuit() {
+      state.circuitOn = !state.circuitOn;
+      if (!state.circuitOn) closeStepExplain();
+      updateSwitchUI();
+      evaluateSetup();
+    }
+
+    function updateSwitchUI() {
+      const btn = document.getElementById('btn-switch');
+      const text = document.getElementById('switch-text');
+      if (state.circuitOn) {
+        btn.className = 'w-full py-2 px-2 rounded-xl font-black text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-900';
+        text.textContent = '回路：ON (発電中)';
+      } else {
+        btn.className = 'w-full py-2 px-2 rounded-xl font-black text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 bg-slate-600 hover:bg-slate-500 text-white';
+        text.textContent = '導線をつなぐ (OFF)';
+      }
+    }
+
+    function toggleLayer(layer) {
+      if (layer === 'electron') {
+        state.showElectronLayer = !state.showElectronLayer;
+        const btn = document.getElementById('toggle-electron');
+        btn.className = state.showElectronLayer
+          ? 'px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1 bg-blue-50 border-blue-400 text-blue-800'
+          : 'px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1 bg-slate-100 border-slate-300 text-slate-400';
+      } else if (layer === 'sulfate') {
+        state.showSulfateLayer = !state.showSulfateLayer;
+        const btn = document.getElementById('toggle-sulfate');
+        btn.className = state.showSulfateLayer
+          ? 'px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1 bg-purple-50 border-purple-400 text-purple-800'
+          : 'px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1 bg-slate-100 border-slate-300 text-slate-400';
+      } else if (layer === 'ceramicMove') {
+        state.highlightCeramicMove = !state.highlightCeramicMove;
+        const btn = document.getElementById('toggle- ceramic');
+        btn.className = state.highlightCeramicMove
+          ? 'px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1 bg-emerald-50 border-emerald-400 text-emerald-800'
+          : 'px-2.5 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1 bg-slate-100 border-slate-300 text-slate-400';
+      }
+    }
+
+    function setSimSpeed(spd) {
+      state.simSpeed = spd;
+      document.getElementById('speed-slow').className = spd === 0.5 ? 'px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white' : 'px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600';
+      document.getElementById('speed-normal').className = spd === 1 ? 'px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white' : 'px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600';
+      document.getElementById('speed-fast').className = spd === 2.2 ? 'px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white' : 'px-2 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-600';
+    }
+
+    // ==================== 1段階ずつ解説（ステップモード） ====================
+    const stepDescriptions = [
+      {
+        badge: 'STEP 1 / 4',
+        text: '【－極：亜鉛板】亜鉛原子(Zn)が電子(2e⁻)を置いて、亜鉛イオン(Zn²⁺)になり水溶液中に溶け出します。(Zn → Zn²⁺ + 2e⁻)',
+        cardId: 'card-anode'
+      },
+      {
+        badge: 'STEP 2 / 4',
+        text: '【導線】亜鉛板で出た電子(e⁻)が、導線を通って豆電球を光らせながら＋極の銅板へ向かって移動します。',
+        cardId: 'status-card'
+      },
+      {
+        badge: 'STEP 3 / 4',
+        text: '【＋極：銅板】硫酸銅水溶液中の銅イオン(Cu²⁺)が電子(2e⁻)を受け取り、赤茶色の銅(Cu)になって銅板に付着します。(Cu²⁺ + 2e⁻ → Cu)',
+        cardId: 'card-cathode'
+      },
+      {
+        badge: 'STEP 4 / 4',
+        text: '【素焼き板】電気的なかたよりをなくすため、素焼き板の穴を通って Zn²⁺ は＋極側へ、SO₄²⁻ は－極側へ移動します。',
+        cardId: 'card-ions'
+      }
+    ];
+
+    function triggerStepExplain() {
+      if (state.setupStatus !== 'valid_normal' && state.setupStatus !== 'valid_reverse') {
+        setCorrectSetup();
+      }
+      state.circuitOn = true;
+      updateSwitchUI();
+      state.stepMode = true;
+      state.currentStep = 1;
+      updateStepOverlayUI();
+      spawnReactionCycle(true);
+    }
+
+    function nextStepExplain() {
+      state.currentStep = (state.currentStep % 4) + 1;
+      updateStepOverlayUI();
+      if (state.currentStep === 1) {
+        spawnReactionCycle(true);
+      }
+    }
+
+    function closeStepExplain() {
+      state.stepMode = false;
+      document.getElementById('step-overlay').classList.add('hidden');
+      ['status-card', 'card-anode', 'card-cathode', 'card-ions'].forEach(id => {
+        document.getElementById(id).classList.remove('highlight-pulse');
+      });
+    }
+
+    function updateStepOverlayUI() {
+      const overlay = document.getElementById('step-overlay');
+      overlay.classList.remove('hidden');
+      const info = stepDescriptions[state.currentStep - 1];
+      document.getElementById('step-badge').textContent = info.badge;
+      document.getElementById('step-desc').textContent = info.text;
+
+      ['status-card', 'card-anode', 'card-cathode', 'card-ions'].forEach(id => {
+        const el = document.getElementById(id);
+        if (id === info.cardId) {
+          el.classList.add('highlight-pulse');
+        } else {
+          el.classList.remove('highlight-pulse');
+        }
+      });
+    }
+
+    // ==================== 化学反応アクション粒子の生成 ====================
+    function spawnReactionCycle(isManual = false) {
+      const isReverse = state.setupStatus === 'valid_reverse';
+      const anodeSide = isReverse ? 'right' : 'left';
+      const cathodeSide = isReverse ? 'left' : 'right';
+
+      // 1. 亜鉛の溶解イベント (Zn -> Zn2+ + 2e-) ※上部の反応式ラベルと被らないよう高さを調整
+      state.actionEvents.push({
+        type: 'dissolve_zn',
+        side: anodeSide,
+        progress: 0,
+        ry: 0.45 + Math.random() * 0.35
+      });
+
+      // 2. 銅の析出イベント (Cu2+ + 2e- -> Cu)
+      state.actionEvents.push({
+        type: 'deposit_cu',
+        side: cathodeSide,
+        progress: 0,
+        ry: 0.45 + Math.random() * 0.35
+      });
+
+      // 3. 素焼き板の通過イベント (Zn2+ と SO42-)
+      if (state.highlightCeramicMove || isManual) {
+        state.actionEvents.push({
+          type: 'cross_ceramic_zn',
+          fromSide: anodeSide,
+          progress: 0,
+          ry: 0.45
+        });
+        state.actionEvents.push({
+          type: 'cross_ceramic_so4',
+          fromSide: cathodeSide,
+          progress: 0,
+          ry: 0.72
+        });
+      }
+    }
+
+    // ==================== Canvas 描画メインループ ====================
+    function drawSimulation() {
+      const w = canvas.logicalWidth || 640;
+      const h = canvas.logicalHeight || 420;
+      ctx.clearRect(0, 0, w, h);
+
+      // レイアウト座標計算（中央のイオン領域を広く取るため電極を外側に配置）
+      const tankW = Math.min(w * 0.80, 540);
+      const tankH = Math.min(h * 0.56, 235);
+      const tankX = (w - tankW) / 2;
+      const tankY = h - tankH - 22;
+      const liquidTop = tankY + 26;
+      const liquidH = tankH - 26;
+      const midX = w / 2;
+
+      const leftPlateX = tankX + tankW * 0.14;
+      const rightPlateX = tankX + tankW * 0.86;
+      const plateW = 36;
+      const plateTop = tankY - 22;
+      const plateH = tankH - 8;
+
+      const wireTopY = 46;
+
+      const isWorking = state.circuitOn && (state.setupStatus === 'valid_normal' || state.setupStatus === 'valid_reverse');
+      const isReverse = state.setupStatus === 'valid_reverse';
+
+      // 進行度バーの更新
+      if (isWorking) {
+        state.reactionProgress = Math.min(100, state.reactionProgress + 0.035 * state.simSpeed);
+      }
+      document.getElementById('progress-bar').style.width = `${state.reactionProgress}%`;
+
+      // -------------------- 1. 水溶液の描画 --------------------
+      // 左の水溶液
+      ctx.save();
+      ctx.fillStyle = getLiquidColor(state.leftLiquid, 'left');
+      ctx.fillRect(tankX + 3, liquidTop, tankW / 2 - 3, liquidH - 3);
+
+      // 右の水溶液
+      ctx.fillStyle = getLiquidColor(state.rightLiquid, 'right');
+      ctx.fillRect(midX, liquidTop, tankW / 2 - 3, liquidH - 3);
+      ctx.restore();
+
+      // 水面ラインのハイライト
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(tankX + 3, liquidTop);
+      ctx.lineTo(tankX + tankW - 3, liquidTop);
+      ctx.stroke();
+
+      // 水溶液名ラベル（槽の下部）
+      ctx.font = 'bold 12px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#475569';
+      ctx.fillText(state.leftLiquid === 'ZnSO4' ? '硫酸亜鉛水溶液 (ZnSO₄)' : '硫酸銅水溶液 (CuSO₄)', tankX + tankW * 0.25, tankY + tankH + 16);
+      ctx.fillText(state.rightLiquid === 'ZnSO4' ? '硫酸亜鉛水溶液 (ZnSO₄)' : '硫酸銅水溶液 (CuSO₄)', tankX + tankW * 0.75, tankY + tankH + 16);
+
+      // -------------------- 2. 素焼き板の描画 --------------------
+      const ceramicW = 14;
+      ctx.save();
+      ctx.fillStyle = '#f8fafc';
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      ctx.fillRect(midX - ceramicW / 2, tankY + 6, ceramicW, tankH - 8);
+      ctx.strokeRect(midX - ceramicW / 2, tankY + 6, ceramicW, tankH - 8);
+
+      // 素焼き板の多孔質表現（点線・穴）
+      ctx.fillStyle = '#cbd5e1';
+      for (let py = tankY + 16; py < tankY + tankH - 12; py += 14) {
+        ctx.fillRect(midX - ceramicW / 2 + 2, py, ceramicW - 4, 5);
+      }
+      ctx.font = 'bold 11px "Noto Sans JP", sans-serif';
+      ctx.fillStyle = '#334155';
+      ctx.textAlign = 'center';
+      ctx.fillText('素焼き板', midX, tankY - 2);
+      ctx.restore();
+
+      // -------------------- 3. 金属板（電極）の描画 --------------------
+      drawMetalPlate(leftPlateX, plateTop, plateW, plateH, state.leftMetal, 'left');
+      drawMetalPlate(rightPlateX, plateTop, plateW, plateH, state.rightMetal, 'right');
+
+      // 直接反応エラー時の視覚エフェクト（亜鉛板表面に直接赤い銅がつく）
+      if (state.setupStatus === 'direct_reaction') {
+        if (state.leftMetal === 'Zn' && state.leftLiquid === 'CuSO4') {
+          drawDirectReactionEffect(leftPlateX, liquidTop, plateW, plateH - (liquidTop - plateTop));
+        }
+        if (state.rightMetal === 'Zn' && state.rightLiquid === 'CuSO4') {
+          drawDirectReactionEffect(rightPlateX, liquidTop, plateW, plateH - (liquidTop - plateTop));
+        }
+      }
+
+      // 水槽の外枠
+      ctx.save();
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 4;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(tankX, tankY);
+      ctx.lineTo(tankX, tankY + tankH);
+      ctx.lineTo(tankX + tankW, tankY + tankH);
+      ctx.lineTo(tankX + tankW, tankY);
+      ctx.stroke();
+      ctx.restore();
+
+      // -------------------- 4. 導線・スイッチ・豆電球の描画 --------------------
+      ctx.save();
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      // 左の板から上へ、そして中央へ
+      ctx.moveTo(leftPlateX, plateTop);
+      ctx.lineTo(leftPlateX, wireTopY);
+      ctx.lineTo(midX - 55, wireTopY);
+      // 中央から右の板へ
+      if (state.circuitOn) {
+        ctx.moveTo(midX - 55, wireTopY);
+        ctx.lineTo(rightPlateX, wireTopY);
+      } else {
+        // スイッチが開いている表現
+        ctx.moveTo(midX - 55, wireTopY);
+        ctx.lineTo(midX - 25, wireTopY - 18);
+        ctx.moveTo(midX - 20, wireTopY);
+        ctx.lineTo(rightPlateX, wireTopY);
+      }
+      ctx.lineTo(rightPlateX, plateTop);
+      ctx.stroke();
+      ctx.restore();
+
+      // 豆電球の描画
+      drawLightBulb(midX + 15, wireTopY, isWorking);
+
+      // -------------------- 5. 電子(e-)と電流の向きの描画 --------------------
+      if (state.showElectronLayer && (state.setupStatus === 'valid_normal' || state.setupStatus === 'valid_reverse')) {
+        drawDirectionIndicators(leftPlateX, rightPlateX, wireTopY, isReverse, isWorking);
+      }
+
+      // 導線上の電子粒アニメーション
+      if (state.showElectronLayer && isWorking) {
+        const canMoveWire = !state.stepMode || state.currentStep === 2;
+        state.wireElectrons.forEach(el => {
+          if (canMoveWire) {
+            el.t = (el.t + 0.0045 * state.simSpeed) % 1;
+          }
+          const progress = isReverse ? (1 - el.t) : el.t;
+          const pos = getPointOnWire(progress, leftPlateX, rightPlateX, plateTop, wireTopY);
+          drawElectronParticle(pos.x, pos.y);
+        });
+      }
+
+      // -------------------- 6. 水溶液中の電離イオンと反応イベントの描画 --------------------
+      updateAndDrawFloatingIons(tankX, liquidTop, tankW, liquidH, leftPlateX, rightPlateX, plateW, midX);
+
+      if (isWorking) {
+        state.spawnTimer += state.simSpeed;
+        if (!state.stepMode && state.spawnTimer > 95) {
+          state.spawnTimer = 0;
+          spawnReactionCycle(false);
+        }
+        updateAndDrawActionEvents(tankX, liquidTop, tankW, liquidH, leftPlateX, rightPlateX, plateW, midX);
+        // 電極で起こる反応式を水面上部に大きく見やすく常時表示
+        drawReactionEquationsOnCanvas(leftPlateX, rightPlateX, liquidTop, midX, isReverse);
+      }
+    }
+
+    // キャンバス内の各電極エリアに反応式を大きく描画（漂うイオンとは重ならない水面上部エリア）
+    function drawReactionEquationsOnCanvas(leftPlateX, rightPlateX, liquidTop, midX, isReverse) {
+      const leftEq = isReverse ? 'Cu²⁺ + 2e⁻ → Cu' : 'Zn → Zn²⁺ + 2e⁻';
+      const rightEq = isReverse ? 'Zn → Zn²⁺ + 2e⁻' : 'Cu²⁺ + 2e⁻ → Cu';
+      const leftIsAnode = !isReverse;
+
+      const leftCenterX = (leftPlateX + 20 + midX - 10) / 2;
+      const rightCenterX = (midX + 10 + rightPlateX - 20) / 2;
+      const boxY = liquidTop + 6;
+
+      drawEquationBadge(leftCenterX, boxY, leftEq, leftIsAnode);
+      drawEquationBadge(rightCenterX, boxY, rightEq, !leftIsAnode);
+    }
+
+    function drawEquationBadge(centerX, topY, text, isAnode) {
+      ctx.save();
+      ctx.font = '900 14.5px "Inter", "Noto Sans JP", monospace';
+      const textWidth = ctx.measureText(text).width;
+      const boxW = textWidth + 20;
+      const boxH = 26;
+      const boxX = centerX - boxW / 2;
+
+      // 背景ボックス
+      ctx.fillStyle = isAnode ? 'rgba(239, 246, 255, 0.95)' : 'rgba(254, 242, 242, 0.95)';
+      ctx.strokeStyle = isAnode ? '#2563eb' : '#dc2626';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(boxX, topY, boxW, boxH, 7);
+      ctx.fill();
+      ctx.stroke();
+
+      // 反応式テキスト
+      ctx.fillStyle = isAnode ? '#1e3a8a' : '#991b1b';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, centerX, topY + boxH / 2 + 0.5);
+      ctx.restore();
+    }
+
+    // 水溶液の色取得（硫酸銅水溶液は反応が進むと少しずつ薄くなる）
+    function getLiquidColor(liquidType, side) {
+      if (liquidType === 'ZnSO4') {
+        return 'rgba(241, 245, 249, 0.85)'; // 無色透明に近い薄いグレー
+      }
+      // 硫酸銅水溶液 (青色)
+      const fade = (state.reactionProgress / 100) * 0.42;
+      const alpha = Math.max(0.22, 0.65 - fade);
+      return `rgba(56, 189, 248, ${alpha})`;
+    }
+
+    // 金属板の描画（反応進行に応じて亜鉛板は細くなり、銅板は赤茶色の析出物で太くなる）
+    function drawMetalPlate(centerX, topY, baseW, h, metalType, side) {
+      ctx.save();
+      const isAnodeZn = (state.setupStatus === 'valid_normal' && side === 'left') ||
+                        (state.setupStatus === 'valid_reverse' && side === 'right');
+      const isCathodeCu = (state.setupStatus === 'valid_normal' && side === 'right') ||
+                          (state.setupStatus === 'valid_reverse' && side === 'left');
+
+      let currentW = baseW;
+      if (isAnodeZn && metalType === 'Zn') {
+        currentW = baseW - (state.reactionProgress / 100) * 10; // 溶けて細くなる
+      }
+
+      const x = centerX - currentW / 2;
+
+      // 銅板に析出した赤茶色の銅レイヤー（水面下のみ太くなる）
+      if (isCathodeCu && metalType === 'Cu' && state.reactionProgress > 2) {
+        const extraThickness = (state.reactionProgress / 100) * 10;
+        ctx.fillStyle = '#9a3412'; // 析出した赤茶色の銅
+        ctx.beginPath();
+        ctx.roundRect(centerX - currentW / 2 - extraThickness / 2, topY + 52, currentW + extraThickness, h - 52, 6);
+        ctx.fill();
+      }
+
+      // 金属板本体
+      if (metalType === 'Zn') {
+        const grad = ctx.createLinearGradient(x, topY, x + currentW, topY);
+        grad.addColorStop(0, '#64748b');
+        grad.addColorStop(0.5, '#94a3b8');
+        grad.addColorStop(1, '#475569');
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = '#334155';
+      } else {
+        const grad = ctx.createLinearGradient(x, topY, x + currentW, topY);
+        grad.addColorStop(0, '#b45309');
+        grad.addColorStop(0.5, '#ea580c');
+        grad.addColorStop(1, '#9a3412');
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = '#7c2d12';
+      }
+
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(x, topY, currentW, h, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      // 亜鉛板が溶けてボロボロになった凹凸表現
+      if (isAnodeZn && state.reactionProgress > 15) {
+        ctx.fillStyle = getLiquidColor(side === 'left' ? state.leftLiquid : state.rightLiquid, side);
+        const notches = Math.floor(state.reactionProgress / 18);
+        for (let i = 0; i < notches; i++) {
+          const ny = topY + 65 + i * 24;
+          ctx.beginPath();
+          ctx.arc(x + currentW, ny, 3.5, 0, Math.PI * 2);
+          ctx.arc(x, ny + 10, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 極ラベルと金属名
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 13px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(metalType === 'Zn' ? '亜鉛' : '銅', centerX, topY + 26);
+      ctx.font = 'bold 11px "Inter", sans-serif';
+      ctx.fillText(metalType === 'Zn' ? '(Zn)' : '(Cu)', centerX, topY + 41);
+
+      // ＋極・－極の丸バッジ（板の上部）
+      if (state.setupStatus === 'valid_normal' || state.setupStatus === 'valid_reverse') {
+        const isMinus = isAnodeZn;
+        ctx.fillStyle = isMinus ? '#2563eb' : '#dc2626';
+        ctx.beginPath();
+        ctx.roundRect(centerX - 24, topY - 22, 48, 19, 6);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 11px "Noto Sans JP", sans-serif';
+        ctx.fillText(isMinus ? '－極' : '＋極', centerX, topY - 9);
+      }
+
+      ctx.restore();
+    }
+
+    // 硫酸銅に亜鉛を直接入れたときの直接付着エフェクト
+    function drawDirectReactionEffect(centerX, liquidTop, plateW, subH) {
+      ctx.save();
+      ctx.fillStyle = '#7c2d12';
+      for (let y = liquidTop + 12; y < liquidTop + subH - 10; y += 14) {
+        ctx.beginPath();
+        ctx.arc(centerX - plateW / 2 - 2, y, 5, 0, Math.PI * 2);
+        ctx.arc(centerX + plateW / 2 + 2, y + 6, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#fef2f2';
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(centerX - 68, liquidTop + subH / 2 - 18, 136, 34, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#991b1b';
+      ctx.font = 'bold 11px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('板の表面で直接Cuが付着!', centerX, liquidTop + subH / 2 - 3);
+      ctx.fillText('(導線にe⁻が流れない)', centerX, liquidTop + subH / 2 + 11);
+      ctx.restore();
+    }
+
+    // 豆電球の描画
+    function drawLightBulb(x, y, isLit) {
+      ctx.save();
+      if (isLit) {
+        // 発光エフェクト
+        const glow = ctx.createRadialGradient(x, y - 6, 4, x, y - 6, 38);
+        glow.addColorStop(0, 'rgba(250, 204, 21, 0.9)');
+        glow.addColorStop(0.6, 'rgba(250, 204, 21, 0.25)');
+        glow.addColorStop(1, 'rgba(250, 204, 21, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y - 6, 38, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ガラス球
+      ctx.fillStyle = isLit ? '#fef08a' : '#f1f5f9';
+      ctx.strokeStyle = isLit ? '#ca8a04' : '#64748b';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(x, y - 6, 17, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // フィラメント
+      ctx.strokeStyle = isLit ? '#ea580c' : '#94a3b8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 6, y + 6);
+      ctx.lineTo(x - 3, y - 8);
+      ctx.lineTo(x + 3, y - 8);
+      ctx.lineTo(x + 6, y + 6);
+      ctx.stroke();
+
+      // 口金
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(x - 8, y + 7, 16, 8);
+      ctx.restore();
+    }
+
+    // 電子の向き・電流の向き矢印ラベル
+    function drawDirectionIndicators(leftX, rightX, wireY, isReverse, isWorking) {
+      ctx.save();
+      const midWireLeft = leftX + (rightX - leftX) * 0.23;
+      const midWireRight = leftX + (rightX - leftX) * 0.77;
+
+      // 電子(e-)の向き（－極 → ＋極）
+      ctx.fillStyle = '#1d4ed8';
+      ctx.strokeStyle = '#2563eb';
+      ctx.lineWidth = 2.5;
+      drawArrow(
+        isReverse ? midWireLeft + 35 : midWireLeft - 35,
+        wireY - 20,
+        isReverse ? midWireLeft - 35 : midWireLeft + 35,
+        wireY - 20,
+        '#2563eb'
+      );
+      ctx.font = 'bold 11px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('電子(e⁻)の向き (－極→＋極)', midWireLeft, wireY - 27);
+
+      // 電流の向き（＋極 → －極）
+      ctx.fillStyle = '#b91c1c';
+      drawArrow(
+        isReverse ? midWireRight - 35 : midWireRight + 35,
+        wireY - 20,
+        isReverse ? midWireRight + 35 : midWireRight - 35,
+        wireY - 20,
+        '#dc2626'
+      );
+      ctx.fillText('電流の向き (＋極→－極)', midWireRight, wireY - 27);
+      ctx.restore();
+    }
+
+    function drawArrow(x1, y1, x2, y2, color) {
+      const headlen = 8;
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - headlen * Math.cos(angle - Math.PI / 6), y2 - headlen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(x2 - headlen * Math.cos(angle + Math.PI / 6), y2 - headlen * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 導線上の座標計算 (t: 0.0 ~ 1.0)
+    function getPointOnWire(t, leftX, rightX, plateTop, wireTopY) {
+      const upDist = plateTop - wireTopY;
+      const acrossDist = rightX - leftX;
+      const total = upDist * 2 + acrossDist;
+      const d = t * total;
+
+      if (d < upDist) {
+        return { x: leftX, y: plateTop - d };
+      } else if (d < upDist + acrossDist) {
+        return { x: leftX + (d - upDist), y: wireTopY };
+      } else {
+        return { x: rightX, y: wireTopY + (d - upDist - acrossDist) };
+      }
+    }
+
+    // 電子(e-)粒子の描画
+    function drawElectronParticle(x, y, scale = 1) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = '#fde047';
+      ctx.strokeStyle = '#ca8a04';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, 8.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#713f12';
+      ctx.font = '900 9px "Inter", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('e⁻', 0, 0.5);
+      ctx.restore();
+    }
+
+    // イオン粒子の描画
+    function drawIonParticle(x, y, type, highlight = false) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      let radius = 12;
+      let bg = '#0284c7';
+      let border = '#0369a1';
+      let label = type;
+
+      if (type === 'Zn2+') {
+        bg = '#2563eb';
+        border = '#1d4ed8';
+        label = 'Zn²⁺';
+      } else if (type === 'Cu2+') {
+        bg = '#0891b2';
+        border = '#0e7490';
+        label = 'Cu²⁺';
+      } else if (type === 'SO42-') {
+        bg = '#7e22ce';
+        border = '#6b21a8';
+        label = 'SO₄²⁻';
+        radius = 13.5;
+      } else if (type === 'Zn') {
+        bg = '#64748b';
+        border = '#334155';
+        label = 'Zn';
+      } else if (type === 'Cu') {
+        bg = '#c2410c';
+        border = '#7c2d12';
+        label = 'Cu';
+      }
+
+      if (highlight) {
+        ctx.shadowColor = bg;
+        ctx.shadowBlur = 10;
+        radius += 2;
+      }
+
+      ctx.fillStyle = bg;
+      ctx.strokeStyle = highlight ? '#fde047' : border;
+      ctx.lineWidth = highlight ? 2.5 : 1.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 9.5px "Inter", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, 0, 0.5);
+      ctx.restore();
+    }
+
+    // 水溶液中に漂う背景電離イオンの更新と描画（電極と上部の反応式ラベルに絶対被らない安全領域で移動）
+    function updateAndDrawFloatingIons(tankX, liquidTop, tankW, liquidH, leftPlateX, rightPlateX, plateW, midX) {
+      const ionRadius = 15;
+      // 左槽の安全X範囲：左電極の右端から素焼き板の左端まで
+      const leftMinX = leftPlateX + plateW / 2 + ionRadius + 8;
+      const leftMaxX = midX - 7 - ionRadius - 8;
+      // 右槽の安全X範囲：素焼き板の右端から右電極の左端まで
+      const rightMinX = midX + 7 + ionRadius + 8;
+      const rightMaxX = rightPlateX - plateW / 2 - ionRadius - 8;
+
+      // 安全Y範囲：上部の反応式ラベル（高さ約34px）の下から水槽の底まで
+      const safeMinY = liquidTop + 46;
+      const safeMaxY = liquidTop + liquidH - ionRadius - 8;
+
+      state.floatingIons.forEach(ion => {
+        if (ion.type === 'SO42-' && !state.showSulfateLayer) return;
+
+        ion.rx += ion.vx * state.simSpeed;
+        ion.ry += ion.vy * state.simSpeed;
+        if (ion.rx < 0.05) { ion.rx = 0.05; ion.vx *= -1; }
+        if (ion.rx > 0.95) { ion.rx = 0.95; ion.vx *= -1; }
+        if (ion.ry < 0.05) { ion.ry = 0.05; ion.vy *= -1; }
+        if (ion.ry > 0.95) { ion.ry = 0.95; ion.vy *= -1; }
+
+        const minX = ion.side === 'left' ? leftMinX : rightMinX;
+        const maxX = ion.side === 'left' ? leftMaxX : rightMaxX;
+
+        const x = minX + ion.rx * Math.max(20, maxX - minX);
+        const y = safeMinY + ion.ry * Math.max(20, safeMaxY - safeMinY);
+        drawIonParticle(x, y, ion.type, false);
+      });
+    }
+
+    // 溶け出し・析出・素焼き板通過の強調アニメーション描画
+    function updateAndDrawActionEvents(tankX, liquidTop, tankW, liquidH, leftPlateX, rightPlateX, plateW, midX) {
+      for (let i = state.actionEvents.length - 1; i >= 0; i--) {
+        const ev = state.actionEvents[i];
+
+        // ステップモード時は該当ステップのアニメーションを強調進行
+        let stepMultiplier = 1;
+        if (state.stepMode) {
+          if (ev.type === 'dissolve_zn' && state.currentStep !== 1) stepMultiplier = 0.15;
+          if (ev.type === 'deposit_cu' && state.currentStep !== 3) stepMultiplier = 0.15;
+          if ((ev.type === 'cross_ceramic_zn' || ev.type === 'cross_ceramic_so4') && state.currentStep !== 4) stepMultiplier = 0.15;
+        }
+
+        ev.progress += 0.0085 * state.simSpeed * stepMultiplier;
+        if (ev.progress >= 1) {
+          if (state.stepMode) {
+            ev.progress = 0; // ステップ解説中は繰り返し再生して見せ続ける
+          } else {
+            state.actionEvents.splice(i, 1);
+            continue;
+          }
+        }
+
+        const p = ev.progress;
+        const y = liquidTop + ev.ry * liquidH;
+
+        // 1. 亜鉛板から Zn2+ が溶け出し、2e- が板の上へ登る
+        if (ev.type === 'dissolve_zn') {
+          const plateX = ev.side === 'left' ? leftPlateX : rightPlateX;
+          const dir = ev.side === 'left' ? 1 : -1;
+          const ionX = plateX + dir * (plateW / 2 + p * 48);
+          drawIonParticle(ionX, y, 'Zn2+', true);
+
+          // 電子が板の中を上へ移動
+          if (state.showElectronLayer) {
+            const eY = y - p * (y - (liquidTop - 30));
+            drawElectronParticle(plateX - 5, eY, 1.05);
+            drawElectronParticle(plateX + 5, eY + 10, 1.05);
+          }
+        }
+
+        // 2. 銅板の表面に Cu2+ が近づき、上から来た 2e- と結合して Cu になる
+        if (ev.type === 'deposit_cu') {
+          const plateX = ev.side === 'left' ? leftPlateX : rightPlateX;
+          const dir = ev.side === 'left' ? 1 : -1;
+
+          if (p < 0.65) {
+            const approach = p / 0.65;
+            const ionX = plateX - dir * (52 * (1 - approach) + plateW / 2);
+            drawIonParticle(ionX, y, 'Cu2+', true);
+
+            if (state.showElectronLayer) {
+              const eY = (liquidTop - 30) + approach * (y - (liquidTop - 30));
+              drawElectronParticle(plateX - 5, eY, 1.05);
+              drawElectronParticle(plateX + 5, eY - 10, 1.05);
+            }
+          } else {
+            // 結合して銅原子(Cu)として板に付着！
+            const attachX = plateX - dir * (plateW / 2 + 2);
+            drawIonParticle(attachX, y, 'Cu', true);
+          }
+        }
+
+        // 3. 素焼き板を通過する Zn2+ (－極側 → ＋極側)
+        if (ev.type === 'cross_ceramic_zn' && state.highlightCeramicMove) {
+          const dir = ev.fromSide === 'left' ? 1 : -1;
+          const startX = midX - dir * 46;
+          const endX = midX + dir * 46;
+          const curX = startX + (endX - startX) * p;
+          drawArrow(startX, y, endX, y, '#2563eb');
+          drawIonParticle(curX, y, 'Zn2+', true);
+        }
+
+        // 4. 素焼き板を通過する SO42- (＋極側 → －極側)
+        if (ev.type === 'cross_ceramic_so4' && state.highlightCeramicMove && state.showSulfateLayer) {
+          const dir = ev.fromSide === 'right' ? -1 : 1;
+          const startX = midX - dir * 46;
+          const endX = midX + dir * 46;
+          const curX = startX + (endX - startX) * p;
+          drawArrow(startX, y, endX, y, '#7e22ce');
+          drawIonParticle(curX, y, 'SO42-', true);
+        }
+      }
+    }
+
+    // ==================== モーダル＆モード切替 ====================
+    function openIonModal() {
+      document.getElementById('ion-modal').classList.remove('hidden');
+    }
+
+    function closeIonModal() {
+      document.getElementById('ion-modal').classList.add('hidden');
+    }
+
+    function switchMode(targetMode) {
+      state.mode = targetMode;
+      const viewSim = document.getElementById('view-sim');
+      const viewQuiz = document.getElementById('view-quiz');
+      const tabSim = document.getElementById('tab-sim');
+      const tabQuiz = document.getElementById('tab-quiz');
+
+      if (targetMode === 'sim') {
+        viewSim.classList.remove('hidden');
+        viewQuiz.classList.add('hidden');
+        tabSim.className = 'px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 bg-blue-600 text-white shadow';
+        tabQuiz.className = 'px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white';
+        setTimeout(resizeCanvas, 20);
+      } else {
+        viewSim.classList.add('hidden');
+        viewQuiz.classList.remove('hidden');
+        tabQuiz.className = 'px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 bg-blue-600 text-white shadow';
+        tabSim.className = 'px-4 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 text-slate-300 hover:text-white';
+        renderQuiz();
+      }
+    }
+
+    // ==================== 小テストモード データ＆ロジック ====================
+    const quizData = [
+      {
+        category: '電極（＋極・－極）とイオンへのなりやすさ',
+        question: 'ダニエル電池で、亜鉛(Zn)と銅(Cu)を比べると「亜鉛の方がイオンになりやすい」性質があります。このとき、－極（負極）になる金属板と、そこで起こる変化の組み合わせとして正しいものはどれですか？',
+        options: [
+          '亜鉛板が－極になり、亜鉛が溶けて亜鉛イオン(Zn²⁺)になる',
+          '亜鉛板が＋極になり、亜鉛イオン(Zn²⁺)が電子を受け取る',
+          '銅板が－極になり、銅が溶けて銅イオン(Cu²⁺)になる',
+          '銅板が＋極になり、亜鉛が銅板の表面に付着する'
+        ],
+        correct: 0,
+        explanation: 'イオンになりやすい金属（亜鉛）が電子(e⁻)を放出して溶け出すため、亜鉛板が「－極」、銅板が「＋極」になります。',
+        simStep: 1
+      },
+      {
+        category: '電子(e⁻)の向きと電流の向き（※テスト頻出！）',
+        question: '左の図で、導線を通って「電子(e⁻)が流れる向き」と「電流が流れる向き」の組み合わせとして正しいものはどれですか？',
+        options: [
+          '電子の向き：(ア) 亜鉛→銅 ／ 電流の向き：(ア) 亜鉛→銅',
+          '電子の向き：(ア) 亜鉛→銅 ／ 電流の向き：(イ) 銅→亜鉛',
+          '電子の向き：(イ) 銅→亜鉛 ／ 電流の向き：(ア) 亜鉛→銅',
+          '電子の向き：(イ) 銅→亜鉛 ／ 電流の向き：(イ) 銅→亜鉛'
+        ],
+        correct: 1,
+        explanation: '電子(e⁻)は－極(亜鉛板)から＋極(銅板)へ流れるので(ア)です。「電流の向き」は＋極から－極（電子の向きと逆）なので(イ)になります！',
+        simStep: 2
+      },
+      {
+        category: '－極（亜鉛板）の化学反応式',
+        question: '－極（亜鉛板）で起こる反応を、電子の記号「e⁻」を使って正しく表した式はどれですか？',
+        options: [
+          'Zn + 2e⁻ → Zn²⁺',
+          'Zn → Zn²⁺ + 2e⁻',
+          'Zn²⁺ + 2e⁻ → Zn',
+          'Zn → Zn⁺ + e⁻'
+        ],
+        correct: 1,
+        explanation: '亜鉛原子(Zn)が2価の陽イオンである亜鉛イオン(Zn²⁺)になるとき、2個の電子(2e⁻)を放出するので「Zn → Zn²⁺ + 2e⁻」と表します。',
+        simStep: 1
+      },
+      {
+        category: '＋極（銅板）の化学反応式',
+        question: '＋極（銅板）の表面で起こる反応を、電子の記号「e⁻」を使って正しく表した式はどれですか？',
+        options: [
+          'Cu → Cu²⁺ + 2e⁻',
+          'Cu²⁺ → Cu + 2e⁻',
+          'Cu²⁺ + 2e⁻ → Cu',
+          'Cu + 2e⁻ → Cu²⁺'
+        ],
+        correct: 2,
+        explanation: '硫酸銅水溶液中の銅イオン(Cu²⁺)が、導線を通ってきた電子(2e⁻)を受け取って銅原子(Cu)になるため、「Cu²⁺ + 2e⁻ → Cu」と表します。',
+        simStep: 3
+      },
+      {
+        category: '長時間電流を流したときの変化',
+        question: 'ダニエル電池でしばらく電流を流し続けたあと、両極の金属板や硫酸銅水溶液の青色はどのように変化しますか？',
+        options: [
+          '亜鉛板はうすくなり、銅板には赤茶色の物質が付着し、硫酸銅水溶液の青色はうすくなる',
+          '亜鉛板は厚くなり、銅板は溶けてうすくなり、硫酸銅水溶液の青色はこくなる',
+          '亜鉛板はうすくなり、銅板には赤茶色の物質が付着し、硫酸銅水溶液の青色はこくなる',
+          'どちらの金属板も変化せず、硫酸銅水溶液の青色だけうすくなる'
+        ],
+        correct: 0,
+        explanation: '－極の亜鉛板は溶けてうすくなり、＋極の銅板には銅が析出して付着します。液中の青色の銅イオン(Cu²⁺)が減るため、硫酸銅水溶液の青色はだんだんうすくなります。',
+        simStep: 3
+      },
+      {
+        category: '素焼き板を通るイオンの移動',
+        question: '電流を流し続けると、左右の水溶液の電気的なかたよりを打ち消すために素焼き板の穴を通ってイオンが移動します。どのイオンがどちら側へ移動しますか？',
+        options: [
+          '陽イオン(Zn²⁺)は＋極(銅板)側へ、陰イオン(SO₄²⁻)は－極(亜鉛板)側へ移動する',
+          '陽イオン(Zn²⁺)は－極(亜鉛板)側へ、陰イオン(SO₄²⁻)は＋極(銅板)側へ移動する',
+          '銅イオン(Cu²⁺)だけが－極(亜鉛板)側へ移動する',
+          '素焼き板の穴は小さいため、どのイオンも通り抜けることはできない'
+        ],
+        correct: 0,
+        explanation: '－極側ではZn²⁺が増えて(＋)にかたより、＋極側ではCu²⁺が減ってSO₄²⁻が余り(－)にかたよります。そのため、Zn²⁺は＋極側へ、SO₄²⁻は－極側へ移動してバランスを保ちます。',
+        simStep: 4
+      },
+      {
+        category: '2種類の水溶液を素焼き板で仕切る理由',
+        question: 'ダニエル電池で、素焼き板を使わずに硫酸銅水溶液に亜鉛板と銅板をそのまま入れた場合、うまく電池として働きません。その理由として最も適切なものはどれですか？',
+        options: [
+          '硫酸銅水溶液には電流を流す性質（導電性）がないから',
+          '液中の銅イオン(Cu²⁺)が亜鉛板の表面に直接ふれて電子を受け取ってしまい、導線に電子が流れないから',
+          '銅板が硫酸銅水溶液に溶けてなくなってしまうから',
+          '亜鉛イオンと銅イオンが反発して電離しなくなるから'
+        ],
+        correct: 1,
+        explanation: '亜鉛板が硫酸銅水溶液に直接ふれると、液中のCu²⁺が亜鉛板の表面で直接電子(e⁻)を受け取って銅が付着してしまい、導線へ電子を取り出せなくなります。',
+        simStep: 1
+      }
+    ];
+
+    const quizState = {
+      currentIndex: 0,
+      answers: Array(quizData.length).fill(null) // null | true | false
+    };
+
+    function renderQuiz() {
+      const q = quizData[quizState.currentIndex];
+      document.getElementById('q-number').textContent = `第 ${quizState.currentIndex + 1} 問 / 全${quizData.length}問`;
+      document.getElementById('q-category').textContent = `テーマ：${q.category}`;
+      document.getElementById('q-text').textContent = q.question;
+
+      // スコア表示
+      const correctCount = quizState.answers.filter(a => a === true).length;
+      document.getElementById('quiz-score-badge').textContent = `正解数: ${correctCount} / ${quizData.length}`;
+
+      // ドットインジケーター
+      const dotsContainer = document.getElementById('quiz-dots');
+      dotsContainer.innerHTML = '';
+      quizData.forEach((_, idx) => {
+        const btn = document.createElement('button');
+        btn.onclick = () => {
+          quizState.currentIndex = idx;
+          renderQuiz();
+        };
+        let cls = 'py-1.5 rounded-lg font-black text-xs border transition ';
+        if (idx === quizState.currentIndex) {
+          cls += 'ring-2 ring-blue-500 ';
+        }
+        if (quizState.answers[idx] === true) {
+          cls += 'bg-emerald-500 text-white border-emerald-600';
+          btn.textContent = `問${idx + 1} ⭕`;
+        } else if (quizState.answers[idx] === false) {
+          cls += 'bg-rose-500 text-white border-rose-600';
+          btn.textContent = `問${idx + 1} ❌`;
+        } else {
+          cls += 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200';
+          btn.textContent = `問${idx + 1}`;
+        }
+        btn.className = cls;
+        dotsContainer.appendChild(btn);
+      });
+
+      // 選択肢生成
+      const optionsContainer = document.getElementById('q-options');
+      optionsContainer.innerHTML = '';
+      q.options.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full text-left p-3 rounded-xl border-2 border-slate-200 hover:border-blue-400 hover:bg-blue-50/40 font-bold text-xs md:text-sm text-slate-800 transition flex items-center gap-3 active:scale-[0.99]';
+        btn.innerHTML = `
+          <span class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-300 flex items-center justify-center font-black text-slate-700 shrink-0">${['ア', 'イ', 'ウ', 'エ'][idx]}</span>
+          <span class="flex-1">${optText}</span>
+        `;
+        btn.onclick = () => selectQuizOption(idx);
+        optionsContainer.appendChild(btn);
+      });
+
+      document.getElementById('q-feedback').classList.add('hidden');
+    }
+
+    function selectQuizOption(selectedIndex) {
+      const q = quizData[quizState.currentIndex];
+      const isCorrect = selectedIndex === q.correct;
+      quizState.answers[quizState.currentIndex] = isCorrect;
+
+      // 選択肢ボタンの色付け
+      const buttons = document.getElementById('q-options').children;
+      for (let i = 0; i < buttons.length; i++) {
+        buttons[i].onclick = null;
+        if (i === q.correct) {
+          buttons[i].className = 'w-full text-left p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 font-bold text-xs md:text-sm text-emerald-950 flex items-center gap-3';
+        } else if (i === selectedIndex && !isCorrect) {
+          buttons[i].className = 'w-full text-left p-3 rounded-xl border-2 border-rose-400 bg-rose-50 font-bold text-xs md:text-sm text-rose-900 flex items-center gap-3 opacity-90';
+        } else {
+          buttons[i].className = 'w-full text-left p-3 rounded-xl border border-slate-200 bg-slate-50 font-medium text-xs md:text-sm text-slate-400 flex items-center gap-3 opacity-60';
+        }
+      }
+
+      // フィードバック表示
+      const fb = document.getElementById('q-feedback');
+      const title = document.getElementById('q-result-title');
+      const exp = document.getElementById('q-explanation');
+      fb.classList.remove('hidden');
+
+      if (isCorrect) {
+        fb.className = 'mt-3 rounded-xl p-3.5 border-2 border-emerald-400 bg-emerald-50/90 transition-all';
+        title.className = 'font-black text-sm text-emerald-800 mb-1 flex items-center gap-1.5';
+        title.textContent = '⭕ 正解！よく理解できています！';
+      } else {
+        fb.className = 'mt-3 rounded-xl p-3.5 border-2 border-rose-400 bg-rose-50/90 transition-all';
+        title.className = 'font-black text-sm text-rose-800 mb-1 flex items-center gap-1.5';
+        title.textContent = `❌ おしい！ 正解は「${['ア', 'イ', 'ウ', 'エ'][q.correct]}」です`;
+      }
+      exp.textContent = q.explanation;
+
+      // スコアとドット更新
+      const correctCount = quizState.answers.filter(a => a === true).length;
+      document.getElementById('quiz-score-badge').textContent = `正解数: ${correctCount} / ${quizData.length}`;
+      const dots = document.getElementById('quiz-dots').children;
+      if (dots[quizState.currentIndex]) {
+        dots[quizState.currentIndex].className = isCorrect
+          ? 'py-1.5 rounded-lg font-black text-xs border ring-2 ring-blue-500 bg-emerald-500 text-white border-emerald-600'
+          : 'py-1.5 rounded-lg font-black text-xs border ring-2 ring-blue-500 bg-rose-500 text-white border-rose-600';
+        dots[quizState.currentIndex].textContent = `問${quizState.currentIndex + 1} ${isCorrect ? '⭕' : '❌'}`;
+      }
+    }
+
+    function nextQuestion() {
+      quizState.currentIndex = (quizState.currentIndex + 1) % quizData.length;
+      renderQuiz();
+    }
+
+    function jumpToSimFromQuiz() {
+      const q = quizData[quizState.currentIndex];
+      switchMode('sim');
+      setCorrectSetup();
+      state.stepMode = true;
+      state.currentStep = q.simStep || 1;
+      updateStepOverlayUI();
+      spawnReactionCycle(true);
+    }
+
+    // ==================== 起動処理 ====================
+    function animateLoop() {
+      if (state.mode === 'sim') {
+        drawSimulation();
+      }
+      requestAnimationFrame(animateLoop);
+    }
+
+    window.onload = function () {
+      resizeCanvas();
+      initParticles();
+      evaluateSetup();
+      animateLoop();
+    };
+  </script>
+</body>
+</html>
