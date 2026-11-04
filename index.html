@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=5.0, user-scalable=yes">
   <title>中3理科：ダニエル電池シミュレーター</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Noto Sans JP', 'Inter', sans-serif;
-      touch-action: manipulation;
+      touch-action: pan-x pan-y pinch-zoom;
       user-select: none;
       -webkit-user-select: none;
     }
@@ -83,7 +83,9 @@
           <div class="col-span-4 bg-slate-50 rounded-lg p-1.5 border border-slate-200 flex flex-col gap-1">
             <div class="flex items-center justify-between px-1">
               <span class="text-[11px] font-bold text-slate-500">◀ 左側のセット</span>
-              <span id="left-pole-badge" class="text-xs font-black px-2 py-0.5 rounded bg-slate-200 text-slate-600">極：？</span>
+              <button id="left-pole-badge" onclick="togglePolesReveal()" class="text-xs font-black px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition active:scale-95 cursor-pointer">
+                👆 何極？（タップ）
+              </button>
             </div>
             <div class="grid grid-cols-2 gap-1">
               <div>
@@ -119,7 +121,9 @@
           <!-- 右側の槽の設定 (4カラム) -->
           <div class="col-span-4 bg-slate-50 rounded-lg p-1.5 border border-slate-200 flex flex-col gap-1">
             <div class="flex items-center justify-between px-1">
-              <span id="right-pole-badge" class="text-xs font-black px-2 py-0.5 rounded bg-slate-200 text-slate-600">極：？</span>
+              <button id="right-pole-badge" onclick="togglePolesReveal()" class="text-xs font-black px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition active:scale-95 cursor-pointer">
+                👆 何極？（タップ）
+              </button>
               <span class="text-[11px] font-bold text-slate-500">右側のセット ▶</span>
             </div>
             <div class="grid grid-cols-2 gap-1">
@@ -174,13 +178,18 @@
             </div>
           </div>
 
-          <!-- イオン化傾向ミニヒント（キャンバス右上） -->
-          <div class="absolute top-2.5 right-3 bg-amber-50/95 backdrop-blur px-2.5 py-1 rounded-xl border border-amber-200 shadow-sm pointer-events-none">
+          <!-- イオン化傾向ミニヒント（キャンバス右上・タップで表示切替） -->
+          <div onclick="toggleIonTendency()" class="absolute top-2.5 right-3 bg-amber-50/95 hover:bg-amber-100/95 backdrop-blur px-2.5 py-1.5 rounded-xl border border-amber-300 shadow-sm cursor-pointer transition active:scale-95 z-10">
             <div class="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
               <span>💡 イオンへのなりやすさ:</span>
-              <span class="bg-white px-1.5 py-0.5 rounded border border-amber-300 font-black text-blue-700">亜鉛(Zn)</span>
-              <span class="font-black text-red-600">＞</span>
-              <span class="bg-white px-1.5 py-0.5 rounded border border-amber-300 font-black text-amber-800">銅(Cu)</span>
+              <span id="ion-tendency-hidden" class="bg-amber-500 text-white px-2 py-0.5 rounded-md font-black text-[11px] shadow-sm flex items-center gap-1">
+                👆 タップして表示
+              </span>
+              <span id="ion-tendency-content" class="hidden items-center gap-1.5">
+                <span class="bg-white px-1.5 py-0.5 rounded border border-amber-300 font-black text-blue-700">亜鉛(Zn)</span>
+                <span class="font-black text-red-600">＞</span>
+                <span class="bg-white px-1.5 py-0.5 rounded border border-amber-300 font-black text-amber-800">銅(Cu)</span>
+              </span>
             </div>
           </div>
         </div>
@@ -232,11 +241,13 @@
         <div id="card-anode" class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between transition-all relative">
           <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
             <div class="flex items-center gap-1.5">
-              <span class="bg-blue-600 text-white font-black text-xs px-2 py-0.5 rounded">－極（負極）</span>
+              <button id="card-anode-pole" onclick="togglePolesReveal()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-black text-xs px-2 py-0.5 rounded transition active:scale-95 cursor-pointer">
+                👆 ？極（タップ）
+              </button>
               <span class="font-bold text-sm text-slate-800">亜鉛板 (Zn)</span>
             </div>
             <button id="btn-hide-anode" onclick="toggleReactionReveal('anode', false)" class="hidden text-[11px] font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md transition">
-              🙈 隠す
+              🙈 式を隠す
             </button>
           </div>
 
@@ -247,7 +258,7 @@
 
             <!-- 化学反応式ボックス -->
             <div class="bg-slate-900 text-white rounded-xl p-2 text-center my-1 shadow-inner border border-slate-700">
-              <div class="text-[11px] text-slate-300 font-bold mb-0.5">－極で起こる反応（e⁻を使った式）</div>
+              <div class="text-[11px] text-slate-300 font-bold mb-0.5">亜鉛板で起こる反応（e⁻を使った式）</div>
               <div class="text-xl md:text-2xl font-black tracking-wider font-mono py-0.5">
                 <span class="text-slate-100">Zn</span>
                 <span class="text-amber-400 mx-1.5">→</span>
@@ -257,15 +268,21 @@
               </div>
             </div>
 
-            <div class="bg-blue-50/80 rounded-lg px-2.5 py-1.5 border border-blue-100 flex items-center justify-between text-[11px]">
-              <span class="font-bold text-slate-700">📌 長時間流すと：</span>
-              <span class="font-bold text-blue-900">亜鉛板がとけて<strong class="underline">うすく(ボロボロに)なる</strong></span>
+            <!-- 長時間流すと（タップで個別表示） -->
+            <div onclick="toggleSubReveal('anodeChange')" class="bg-blue-50/80 hover:bg-blue-100/70 rounded-lg px-2.5 py-1.5 border border-blue-200 flex items-center justify-between text-[11px] cursor-pointer transition active:scale-[0.99]">
+              <span class="font-bold text-slate-700 shrink-0">📌 長時間流すと：</span>
+              <span id="anode-change-hidden" class="bg-blue-600 text-white font-black px-2.5 py-0.5 rounded-full text-[10px] shadow-sm">
+                👆 タップして表示
+              </span>
+              <span id="anode-change-content" class="hidden font-bold text-blue-900">
+                亜鉛板がとけて<strong class="underline">うすく(ボロボロに)なる</strong>
+              </span>
             </div>
 
             <!-- タップして表示カバー（初期状態：表示） -->
             <div id="cover-anode" onclick="toggleReactionReveal('anode', true)" class="absolute inset-0 bg-gradient-to-br from-blue-50 to-slate-100 hover:from-blue-100 hover:to-slate-200 border-2 border-dashed border-blue-400 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all z-10 shadow-sm active:scale-[0.99]">
               <div class="bg-blue-600 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow flex items-center gap-1.5 mb-1.5">
-                <span>👆</span> タップして－極の反応を表示
+                <span>👆</span> タップして亜鉛板の反応を表示
               </div>
               <p class="text-[11px] font-bold text-slate-600 text-center px-3">
                 亜鉛板ではどんな反応が起こる？<br>e⁻を使った式を予想してからタップしよう！
@@ -278,11 +295,13 @@
         <div id="card-cathode" class="bg-white rounded-xl p-3 shadow-sm border border-slate-200 flex-1 flex flex-col justify-between transition-all relative">
           <div class="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-1.5">
             <div class="flex items-center gap-1.5">
-              <span class="bg-red-600 text-white font-black text-xs px-2 py-0.5 rounded">＋極（正極）</span>
+              <button id="card-cathode-pole" onclick="togglePolesReveal()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-black text-xs px-2 py-0.5 rounded transition active:scale-95 cursor-pointer">
+                👆 ？極（タップ）
+              </button>
               <span class="font-bold text-sm text-slate-800">銅板 (Cu)</span>
             </div>
             <button id="btn-hide-cathode" onclick="toggleReactionReveal('cathode', false)" class="hidden text-[11px] font-bold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md transition">
-              🙈 隠す
+              🙈 式を隠す
             </button>
           </div>
 
@@ -293,7 +312,7 @@
 
             <!-- 化学反応式ボックス -->
             <div class="bg-slate-900 text-white rounded-xl p-2 text-center my-1 shadow-inner border border-slate-700">
-              <div class="text-[11px] text-slate-300 font-bold mb-0.5">＋極で起こる反応（e⁻を使った式）</div>
+              <div class="text-[11px] text-slate-300 font-bold mb-0.5">銅板で起こる反応（e⁻を使った式）</div>
               <div class="text-xl md:text-2xl font-black tracking-wider font-mono py-0.5">
                 <span class="text-cyan-400">Cu²⁺</span>
                 <span class="text-slate-300 mx-1.5">+</span>
@@ -303,21 +322,32 @@
               </div>
             </div>
 
-            <div class="bg-red-50/80 rounded-lg px-2.5 py-1.5 border border-red-100 flex flex-col gap-0.5 text-[11px]">
-              <div class="flex justify-between">
-                <span class="font-bold text-slate-700">📌 電極の変化：</span>
-                <span class="font-bold text-red-900">赤茶色の<strong class="underline">銅が付着して厚くなる</strong></span>
+            <!-- 電極の変化・液の色の変化（それぞれ個別にタップで表示） -->
+            <div class="bg-red-50/80 rounded-lg px-2 py-1 border border-red-200 flex flex-col gap-1 text-[11px]">
+              <div onclick="toggleSubReveal('cathodeElectrode')" class="flex items-center justify-between cursor-pointer hover:bg-red-100/70 rounded px-1 py-0.5 transition active:scale-[0.99]">
+                <span class="font-bold text-slate-700 shrink-0">📌 電極の変化：</span>
+                <span id="cathode-electrode-hidden" class="bg-red-600 text-white font-black px-2.5 py-0.5 rounded-full text-[10px] shadow-sm">
+                  👆 タップして表示
+                </span>
+                <span id="cathode-electrode-content" class="hidden font-bold text-red-900">
+                  赤茶色の<strong class="underline">銅が付着して厚くなる</strong>
+                </span>
               </div>
-              <div class="flex justify-between">
-                <span class="font-bold text-slate-700">📌 液の色の変化：</span>
-                <span class="font-bold text-cyan-800">Cu²⁺が減り<strong class="underline">青色がうすくなる</strong></span>
+              <div onclick="toggleSubReveal('cathodeLiquid')" class="flex items-center justify-between cursor-pointer hover:bg-red-100/70 rounded px-1 py-0.5 transition active:scale-[0.99]">
+                <span class="font-bold text-slate-700 shrink-0">📌 液の色の変化：</span>
+                <span id="cathode-liquid-hidden" class="bg-cyan-600 text-white font-black px-2.5 py-0.5 rounded-full text-[10px] shadow-sm">
+                  👆 タップして表示
+                </span>
+                <span id="cathode-liquid-content" class="hidden font-bold text-cyan-800">
+                  Cu²⁺が減り<strong class="underline">青色がうすくなる</strong>
+                </span>
               </div>
             </div>
 
             <!-- タップして表示カバー（初期状態：表示） -->
             <div id="cover-cathode" onclick="toggleReactionReveal('cathode', true)" class="absolute inset-0 bg-gradient-to-br from-red-50 to-slate-100 hover:from-red-100 hover:to-slate-200 border-2 border-dashed border-red-400 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all z-10 shadow-sm active:scale-[0.99]">
               <div class="bg-red-600 text-white text-xs font-black px-3.5 py-1.5 rounded-full shadow flex items-center gap-1.5 mb-1.5">
-                <span>👆</span> タップして＋極の反応を表示
+                <span>👆</span> タップして銅板の反応を表示
               </div>
               <p class="text-[11px] font-bold text-slate-600 text-center px-3">
                 銅板の表面ではどんな反応が起こる？<br>e⁻を使った式を予想してからタップしよう！
@@ -554,9 +584,14 @@
       showSulfateLayer: true,
       highlightCeramicMove: true,
 
-      // 反応カードの開閉状態（デフォルトは隠す）
+      // タップして表示する各項目の開閉状態（デフォルトはすべて隠す）
+      ionTendencyRevealed: false,
+      polesRevealed: false,
       anodeRevealed: false,
       cathodeRevealed: false,
+      anodeChangeRevealed: false,
+      cathodeElectrodeRevealed: false,
+      cathodeLiquidRevealed: false,
 
       // セットアップの判定結果: 'valid_normal' (左Zn/右Cu), 'valid_reverse' (左Cu/右Zn), 'direct_reaction' (ZnをCuSO4に投入), 'same_metal', 'no_reaction'
       setupStatus: 'valid_normal',
@@ -589,6 +624,29 @@
     }
 
     window.addEventListener('resize', resizeCanvas);
+
+    // キャンバス上の「？極」バッジをタップしたときも極の表示/非表示を切り替えられるようにする
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      const w = canvas.logicalWidth || 640;
+      const h = canvas.logicalHeight || 420;
+      const tankW = Math.min(w * 0.80, 540);
+      const tankH = Math.min(h * 0.56, 235);
+      const tankX = (w - tankW) / 2;
+      const tankY = h - tankH - 22;
+      const leftPlateX = tankX + tankW * 0.14;
+      const rightPlateX = tankX + tankW * 0.86;
+      const plateTop = tankY - 22;
+
+      // 左右の金属板上部の極バッジ周辺をタップした場合
+      const hitLeft = Math.abs(clickX - leftPlateX) <= 36 && Math.abs(clickY - (plateTop - 12)) <= 20;
+      const hitRight = Math.abs(clickX - rightPlateX) <= 36 && Math.abs(clickY - (plateTop - 12)) <= 20;
+      if (hitLeft || hitRight) {
+        togglePolesReveal();
+      }
+    });
 
     function initParticles() {
       state.wireElectrons = [];
@@ -641,10 +699,25 @@
 
       const leftBadge = document.getElementById('left-pole-badge');
       const rightBadge = document.getElementById('right-pole-badge');
+      const cardAnodePole = document.getElementById('card-anode-pole');
+      const cardCathodePole = document.getElementById('card-cathode-pole');
       const statusCard = document.getElementById('status-card');
       const statusTitle = document.getElementById('status-title');
       const statusSub = document.getElementById('status-sub');
       const statusMsg = document.getElementById('status-message');
+
+      // 右側カードの極バッジ更新
+      if (state.polesRevealed) {
+        cardAnodePole.textContent = '－極（負極）';
+        cardAnodePole.className = 'bg-blue-600 hover:bg-blue-500 text-white font-black text-xs px-2 py-0.5 rounded transition active:scale-95 cursor-pointer shadow-sm';
+        cardCathodePole.textContent = '＋極（正極）';
+        cardCathodePole.className = 'bg-red-600 hover:bg-red-500 text-white font-black text-xs px-2 py-0.5 rounded transition active:scale-95 cursor-pointer shadow-sm';
+      } else {
+        cardAnodePole.textContent = '👆 ？極（タップ）';
+        cardAnodePole.className = 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-black text-xs px-2 py-0.5 rounded transition active:scale-95 cursor-pointer';
+        cardCathodePole.textContent = '👆 ？極（タップ）';
+        cardCathodePole.className = 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-black text-xs px-2 py-0.5 rounded transition active:scale-95 cursor-pointer';
+      }
 
       // 1. 亜鉛板を硫酸銅水溶液に直接入れた場合（直接反応エラー）
       if ((lm === 'Zn' && ll === 'CuSO4') || (rm === 'Zn' && rl === 'CuSO4')) {
@@ -681,32 +754,50 @@
       // 3. 正しいダニエル電池（左：Zn+ZnSO4、右：Cu+CuSO4）
       if (lm === 'Zn' && ll === 'ZnSO4' && rm === 'Cu' && rl === 'CuSO4') {
         state.setupStatus = 'valid_normal';
-        leftBadge.textContent = '－極 (負極)';
-        leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-blue-600 text-white shadow-sm';
-        rightBadge.textContent = '＋極 (正極)';
-        rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-red-600 text-white shadow-sm';
+        if (state.polesRevealed) {
+          leftBadge.textContent = '－極 (負極)';
+          leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-blue-600 text-white shadow-sm cursor-pointer';
+          rightBadge.textContent = '＋極 (正極)';
+          rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-red-600 text-white shadow-sm cursor-pointer';
+        } else {
+          leftBadge.textContent = '👆 何極？（タップ）';
+          leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition active:scale-95 cursor-pointer';
+          rightBadge.textContent = '👆 何極？（タップ）';
+          rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition active:scale-95 cursor-pointer';
+        }
 
         statusCard.className = 'bg-white rounded-xl p-3 shadow-sm border-2 border-blue-400 shrink-0';
         statusTitle.textContent = '⚡ 正しいダニエル電池のセットです';
         statusTitle.className = 'text-xs font-black px-2 py-0.5 rounded-md bg-blue-100 text-blue-800';
         statusSub.textContent = state.circuitOn ? '電球：点灯中 💡' : 'スイッチ：OFF';
-        statusMsg.innerHTML = '左の<strong>亜鉛板(－極)</strong>から<strong>電子(e⁻)</strong>が導線へ流れ出し、右の<strong>銅板(＋極)</strong>へ移動します。※電流の向きは電子の逆（＋極→－極）です。';
+        statusMsg.innerHTML = state.polesRevealed
+          ? '左の<strong>亜鉛板(－極)</strong>から<strong>電子(e⁻)</strong>が導線へ流れ出し、右の<strong>銅板(＋極)</strong>へ移動します。※電流の向きは電子の逆（＋極→－極）です。'
+          : '亜鉛と銅の「イオンへのなりやすさ」を比べて、<strong>どちらが－極・＋極になるか</strong>予想してから「👆 何極？」をタップしよう！';
         return;
       }
 
       // 4. 左右逆の正しいダニエル電池（左：Cu+CuSO4、右：Zn+ZnSO4）
       if (lm === 'Cu' && ll === 'CuSO4' && rm === 'Zn' && rl === 'ZnSO4') {
         state.setupStatus = 'valid_reverse';
-        leftBadge.textContent = '＋極 (正極)';
-        leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-red-600 text-white shadow-sm';
-        rightBadge.textContent = '－極 (負極)';
-        rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-blue-600 text-white shadow-sm';
+        if (state.polesRevealed) {
+          leftBadge.textContent = '＋極 (正極)';
+          leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-red-600 text-white shadow-sm cursor-pointer';
+          rightBadge.textContent = '－極 (負極)';
+          rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-blue-600 text-white shadow-sm cursor-pointer';
+        } else {
+          leftBadge.textContent = '👆 何極？（タップ）';
+          leftBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition active:scale-95 cursor-pointer';
+          rightBadge.textContent = '👆 何極？（タップ）';
+          rightBadge.className = 'text-xs font-black px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition active:scale-95 cursor-pointer';
+        }
 
         statusCard.className = 'bg-white rounded-xl p-3 shadow-sm border-2 border-emerald-500 shrink-0';
         statusTitle.textContent = '⚡ 左右逆でも正しく発電します！';
         statusTitle.className = 'text-xs font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800';
         statusSub.textContent = state.circuitOn ? '電球：点灯中 💡' : 'スイッチ：OFF';
-        statusMsg.innerHTML = '右の<strong>亜鉛板が－極</strong>、左の<strong>銅板が＋極</strong>になります。電子(e⁻)は右(亜鉛)から左(銅)へ流れます！';
+        statusMsg.innerHTML = state.polesRevealed
+          ? '右の<strong>亜鉛板が－極</strong>、左の<strong>銅板が＋極</strong>になります。電子(e⁻)は右(亜鉛)から左(銅)へ流れます！'
+          : '左右を入れ替えたセットです。<strong>どちらが－極・＋極になるか</strong>予想してから「👆 何極？」をタップしよう！';
         return;
       }
 
@@ -749,10 +840,46 @@
       state.reactionProgress = 0;
       state.circuitOn = false;
       updateSwitchUI();
+
+      // タップして表示する項目をすべて初期状態（隠す）に戻す
+      state.ionTendencyRevealed = false;
+      updateIonTendencyUI();
+      state.polesRevealed = false;
+
       toggleReactionReveal('anode', false);
       toggleReactionReveal('cathode', false);
+      setSubReveal('anodeChange', false);
+      setSubReveal('cathodeElectrode', false);
+      setSubReveal('cathodeLiquid', false);
+
       closeStepExplain();
       initParticles();
+      evaluateSetup();
+    }
+
+    // 「イオンへのなりやすさ」の表示／非表示切替
+    function toggleIonTendency() {
+      state.ionTendencyRevealed = !state.ionTendencyRevealed;
+      updateIonTendencyUI();
+    }
+
+    function updateIonTendencyUI() {
+      const hiddenEl = document.getElementById('ion-tendency-hidden');
+      const contentEl = document.getElementById('ion-tendency-content');
+      if (state.ionTendencyRevealed) {
+        hiddenEl.classList.add('hidden');
+        contentEl.classList.remove('hidden');
+        contentEl.classList.add('flex');
+      } else {
+        hiddenEl.classList.remove('hidden');
+        contentEl.classList.add('hidden');
+        contentEl.classList.remove('flex');
+      }
+    }
+
+    // 「どちらが－極・＋極か」の表示／非表示切替
+    function togglePolesReveal() {
+      state.polesRevealed = !state.polesRevealed;
       evaluateSetup();
     }
 
@@ -766,6 +893,33 @@
         state.cathodeRevealed = show;
         document.getElementById('cover-cathode').classList.toggle('hidden', show);
         document.getElementById('btn-hide-cathode').classList.toggle('hidden', !show);
+      }
+    }
+
+    // カード内の個別項目（長時間流すと・電極の変化・液の色の変化）のタップ切替
+    function toggleSubReveal(target) {
+      if (target === 'anodeChange') {
+        setSubReveal('anodeChange', !state.anodeChangeRevealed);
+      } else if (target === 'cathodeElectrode') {
+        setSubReveal('cathodeElectrode', !state.cathodeElectrodeRevealed);
+      } else if (target === 'cathodeLiquid') {
+        setSubReveal('cathodeLiquid', !state.cathodeLiquidRevealed);
+      }
+    }
+
+    function setSubReveal(target, show) {
+      if (target === 'anodeChange') {
+        state.anodeChangeRevealed = show;
+        document.getElementById('anode-change-hidden').classList.toggle('hidden', show);
+        document.getElementById('anode-change-content').classList.toggle('hidden', !show);
+      } else if (target === 'cathodeElectrode') {
+        state.cathodeElectrodeRevealed = show;
+        document.getElementById('cathode-electrode-hidden').classList.toggle('hidden', show);
+        document.getElementById('cathode-electrode-content').classList.toggle('hidden', !show);
+      } else if (target === 'cathodeLiquid') {
+        state.cathodeLiquidRevealed = show;
+        document.getElementById('cathode-liquid-hidden').classList.toggle('hidden', show);
+        document.getElementById('cathode-liquid-content').classList.toggle('hidden', !show);
       }
     }
 
@@ -1100,12 +1254,15 @@
       const leftRevealed = leftIsAnode ? state.anodeRevealed : state.cathodeRevealed;
       const rightRevealed = leftIsAnode ? state.cathodeRevealed : state.anodeRevealed;
 
+      const leftPoleName = state.polesRevealed ? (isReverse ? '＋極' : '－極') : '？極';
+      const rightPoleName = state.polesRevealed ? (isReverse ? '－極' : '＋極') : '？極';
+
       const leftEq = leftRevealed
         ? (isReverse ? 'Cu²⁺ + 2e⁻ → Cu' : 'Zn → Zn²⁺ + 2e⁻')
-        : (isReverse ? '＋極の反応：？？？' : '－極の反応：？？？');
+        : `${leftPoleName}の反応：？？？`;
       const rightEq = rightRevealed
         ? (isReverse ? 'Zn → Zn²⁺ + 2e⁻' : 'Cu²⁺ + 2e⁻ → Cu')
-        : (isReverse ? '－極の反応：？？？' : '＋極の反応：？？？');
+        : `${rightPoleName}の反応：？？？`;
 
       const leftCenterX = (leftPlateX + 20 + midX - 10) / 2;
       const rightCenterX = (midX + 10 + rightPlateX - 20) / 2;
@@ -1211,24 +1368,37 @@
         }
       }
 
-      // 極ラベルと金属名
+      // 金属板の文字ラベル
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 13px "Noto Sans JP", sans-serif';
+      ctx.font = 'bold 12px "Noto Sans JP", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(metalType === 'Zn' ? '亜鉛' : '銅', centerX, topY + 26);
+      ctx.fillText(metalType === 'Zn' ? '亜鉛' : '銅', centerX, topY + 22);
       ctx.font = 'bold 11px "Inter", sans-serif';
-      ctx.fillText(metalType === 'Zn' ? '(Zn)' : '(Cu)', centerX, topY + 41);
+      ctx.fillText(`(${metalType})`, centerX, topY + 36);
 
-      // ＋極・－極の丸バッジ（板の上部）
+      // ＋極・－極の丸バッジ（板の上部：タップで表示と連動）
       if (state.setupStatus === 'valid_normal' || state.setupStatus === 'valid_reverse') {
         const isMinus = isAnodeZn;
-        ctx.fillStyle = isMinus ? '#2563eb' : '#dc2626';
-        ctx.beginPath();
-        ctx.roundRect(centerX - 24, topY - 22, 48, 19, 6);
-        ctx.fill();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 11px "Noto Sans JP", sans-serif';
-        ctx.fillText(isMinus ? '－極' : '＋極', centerX, topY - 9);
+        if (state.polesRevealed) {
+          ctx.fillStyle = isMinus ? '#2563eb' : '#dc2626';
+          ctx.beginPath();
+          ctx.roundRect(centerX - 24, topY - 22, 48, 19, 6);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '900 11px "Noto Sans JP", sans-serif';
+          ctx.fillText(isMinus ? '－極' : '＋極', centerX, topY - 9);
+        } else {
+          ctx.fillStyle = '#fef3c7';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.roundRect(centerX - 26, topY - 22, 52, 19, 6);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = '#92400e';
+          ctx.font = '900 11px "Noto Sans JP", sans-serif';
+          ctx.fillText('？極', centerX, topY - 9);
+        }
       }
 
       ctx.restore();
